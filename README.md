@@ -26,7 +26,7 @@ make install
 ```
 2. Export the environmental variables:
 ```
-export INCLUDE_PATH="$HOME/gsl-2.6-local-install/include
+export INCLUDE_PATH="$HOME/gsl-2.6-local-install/include"
 export LIBRARY_PATH="$HOME/gsl-2.6-local-install/lib"
 ```
 3. Then, download and build OrientAGraph.
