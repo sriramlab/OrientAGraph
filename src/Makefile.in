@@ -77,7 +77,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = treemix$(EXEEXT) threepop$(EXEEXT) fourpop$(EXEEXT) \
+bin_PROGRAMS = orientagraph$(EXEEXT) threepop$(EXEEXT) fourpop$(EXEEXT) \
 	f4ratio$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
@@ -108,11 +108,11 @@ am_threepop_OBJECTS = three_pop.$(OBJEXT) gzstream.$(OBJEXT) \
 	CountData.$(OBJEXT) CmdLine.$(OBJEXT) GraphState2.$(OBJEXT)
 threepop_OBJECTS = $(am_threepop_OBJECTS)
 threepop_LDADD = $(LDADD)
-am_treemix_OBJECTS = TreeMix.$(OBJEXT) gzstream.$(OBJEXT) \
+am_orientagraph_OBJECTS = TreeMix.$(OBJEXT) gzstream.$(OBJEXT) \
 	PopGraph.$(OBJEXT) nnls.$(OBJEXT) PhyloPop_params.$(OBJEXT) \
 	CountData.$(OBJEXT) CmdLine.$(OBJEXT) GraphState2.$(OBJEXT)
-treemix_OBJECTS = $(am_treemix_OBJECTS)
-treemix_LDADD = $(LDADD)
+orientagraph_OBJECTS = $(am_orientagraph_OBJECTS)
+orientagraph_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -143,9 +143,9 @@ am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
 SOURCES = $(f4ratio_SOURCES) $(fourpop_SOURCES) $(threepop_SOURCES) \
-	$(treemix_SOURCES)
+	$(orientagraph_SOURCES)
 DIST_SOURCES = $(f4ratio_SOURCES) $(fourpop_SOURCES) \
-	$(threepop_SOURCES) $(treemix_SOURCES)
+	$(threepop_SOURCES) $(orientagraph_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -263,7 +263,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 DISTCHECK_CONFIGURE_FLAGS = LDFLAGS=-L/opt/local/lib CXXFLAGS=-I/opt/local/include
-treemix_SOURCES = TreeMix.cpp gzstream.cpp PopGraph.cpp nnls.cpp PhyloPop_params.cpp CountData.cpp CmdLine.cpp GraphState2.cpp
+orientagraph_SOURCES = TreeMix.cpp gzstream.cpp PopGraph.cpp nnls.cpp PhyloPop_params.cpp CountData.cpp CmdLine.cpp GraphState2.cpp
 threepop_SOURCES = three_pop.cpp gzstream.cpp PopGraph.cpp nnls.cpp PhyloPop_params.cpp CountData.cpp CmdLine.cpp GraphState2.cpp
 fourpop_SOURCES = four_pop.cpp gzstream.cpp PopGraph.cpp nnls.cpp PhyloPop_params.cpp CountData.cpp CmdLine.cpp GraphState2.cpp
 f4ratio_SOURCES = f4_ratio.cpp gzstream.cpp PopGraph.cpp nnls.cpp PhyloPop_params.cpp CountData.cpp CmdLine.cpp GraphState2.cpp
@@ -357,9 +357,9 @@ threepop$(EXEEXT): $(threepop_OBJECTS) $(threepop_DEPENDENCIES) $(EXTRA_threepop
 	@rm -f threepop$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(threepop_OBJECTS) $(threepop_LDADD) $(LIBS)
 
-treemix$(EXEEXT): $(treemix_OBJECTS) $(treemix_DEPENDENCIES) $(EXTRA_treemix_DEPENDENCIES) 
-	@rm -f treemix$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(treemix_OBJECTS) $(treemix_LDADD) $(LIBS)
+orientagraph$(EXEEXT): $(orientagraph_OBJECTS) $(orientagraph_DEPENDENCIES) $(EXTRA_orientagraph_DEPENDENCIES) 
+	@rm -f orientagraph$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(orientagraph_OBJECTS) $(orientagraph_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)

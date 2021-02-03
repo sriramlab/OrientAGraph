@@ -1,15 +1,20 @@
 OrientAGraph
 ============
 
-OrientAGraph is a built from [TreeMix](https://bitbucket.org/nygcresearch/treemix/src/master/) version 1.13 revision 231. Like the TreeMix code from J.K. Pickrell and J.K. Pritchard, OrientAGraph is provided under the [GNU General Public License v3.0](LICENSE).
+OrientAGraph enables **Maximum Likelihood Network Orientation (MNLO)** to be utilized as a search heuristic within [TreeMix](https://doi.org/10.1371/journal.pgen.1002967), a popular package for estimating admixture graphs.
+We found that MLNO improved (or else did not impact) the accuracy of the original TreeMix method in an experimental study.
+To learn more, check out [this bioRxiv preprint](https://doi.org/10.1101/2021.02.02.429467) with Arun Durvasula and Sriram Sankararaman.
 
-OrientAGraph implements several new features on top of TreeMix, most notable of which is  **Maximum Likelihood Network Orientation (MNLO)**. When the `-mlno` option is provided, the MLNO is performed after the addition of each migration edge. In our experimental study, we found that this improved (or else did not impact) the accuracy of the original TreeMix method.
 
-TreeMix is described in [Pickrell and Pritchard  (2012)](https://doi.org/10.1371/journal.pgen.1002967).
+Acknowledgements
+----------------
+OrientAGraph is built from the [TreeMix code](https://bitbucket.org/nygcresearch/treemix/src/master/) by J.K. Pickrell and J.K. Pritchard, and like the TreeMix code, is provided under the [GNU General Public License v3.0](LICENSE). TreeMix is presented in [Pickrell and Pritchard (2012)](https://doi.org/10.1371/journal.pgen.1002967) and in [Pickrell et al. (2012)](https://doi.org/10.1038/ncomms2140).
 
-OrientAGraph is described in [this bioRxiv preprint](https://doi.org/10.1101/2021.02.02.429467).
+OrientAGraph implements algorithms / utilizes theoretical results from [Huber et al. (2019)](https://arxiv.org/abs/1906.07430) and [Francis and Steel (2015)](https://doi.org/10.1093/sysbio/syv037).
 
-# Installation
+
+Installation
+------------
 OrientAGraph has only been tested on Linux using gcc versions 4.8.5 and 4.9.3 and GSL version 2.6. 
 
 1. If your system does not have GSL installed, then you will need to install it, for example with the following commands:
@@ -45,11 +50,11 @@ export PATH="$HOME/OrientAGraph/src:$PATH"
 5. If everything has gone well, then typing
 ```
 source ~/.bash_profile
-treemix
+orientagraph
 ```
 should produce the help message:
 ```
-OrientAGraph v1.0
+OrientAGraph 1.0
 
 OrientAGraph is built from TreeMix v1.13 Revision 231
 by J.K. Pickrell and J.K. Pritchard and has several new

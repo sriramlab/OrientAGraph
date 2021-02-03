@@ -9,12 +9,13 @@
 #include "CountData.h"
 #include "GraphState2.h"
 #include "PhyloPop_params.h"
+#include "../config.h"
 
 string infile;
 string outstem = "OrientAGraph";
 
 void printv(){
-	cout << "\nOrientAGraph v1.0\n\n";
+	cout << PACKAGE_NAME << " " << PACKAGE_VERSION << "\n\n";
 	cout << "OrientAGraph is built from TreeMix v1.13 Revision 231\n";
 	cout << "by J.K. Pickrell and J.K. Pritchard and has several new\n";
 	cout << "features, including the option to run Maximum Likelihood\n";
@@ -57,7 +58,7 @@ int main(int argc, char *argv[]){
     printv();
 
     // Added by EKM for record keeping
-    cout << "COMMAND: treemix";
+    cout << "COMMAND: ";
     for(int i=0; i <argc; i++) {
         printf(" %s", argv[i]);
     }
