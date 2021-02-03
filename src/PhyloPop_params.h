@@ -113,6 +113,17 @@ public:
 
 	// warning suppression - define number of warnings to show (-1 indicates show all)
 	int num_warnings;
+
+	// Start of parameters added by EKM
+	bool givenmat;
+	string matfile;
+	bool refittf;
+	bool givenpopaddorder;
+	string popaddorderfile;
+        bool domlno;
+	bool tryallmigs;
+	bool driftunits;
+	// End of parameters added by EKM
 };
 
 #endif /* PHYLOPOP_PARAMS_H_ */

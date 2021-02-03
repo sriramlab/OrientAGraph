@@ -3,6 +3,8 @@
  *
  *  Created on: Jun 28, 2011
  *      Author: pickrell
+ *
+ * MLNO additions by ekmolloy in January 2021
  */
 
 #include "GraphState2.h"
@@ -16,7 +18,54 @@ GraphState2::GraphState2(CountData* counts, PhyloPop_params* pa){
 	allpopnames = counts->list_pops();
 	cout << "SEED: "<< pa->seed << "\n";
 	srand ( pa->seed );
-	random_shuffle(allpopnames.begin(), allpopnames.end() );
+
+
+	// Start of addition by EKM
+	// Adding lambda = 0.0001 to avoid underflow
+	// See Equation 7 in Patterson et al. 2012
+	double tmp;
+	double lambda = 0.0001;
+	int n = countdata->npop;
+	for (int i = 0; i < (countdata->npop-1); i++) {
+		for (int j = i+1; j < countdata->npop; j++) {
+			tmp = lambda + gsl_matrix_get(countdata->cov_var, i, j);
+			gsl_matrix_set(countdata->cov_var, i, j, tmp);
+			gsl_matrix_set(countdata->cov_var, j, i, tmp);
+		}
+	}
+	if (!params->f2) {
+		for (int i = 0; i < countdata->npop; i++) {
+			tmp = lambda + gsl_matrix_get(countdata->cov_var, i, i);
+			gsl_matrix_set(countdata->cov_var, i, i, tmp);
+		}
+	}
+	// End of addition by EKM
+
+	if (pa->givenpopaddorder) {
+		// Start of addition by EKM
+		allpopnames.clear();
+		
+		ifstream fptr(pa->popaddorderfile.c_str());
+		if (!fptr.is_open()) {
+			cout << "Unable to open " << pa->popaddorderfile << "\n";
+			exit(1);
+		}
+
+		cout << "Populations will be added in the following order:";
+		string line;
+		int i = 0;
+		while (getline(fptr, line)) {
+			allpopnames.push_back(line);
+			cout << " " << allpopnames[i];
+			i++;
+		}
+		cout << "\n";
+		fptr.close();
+		// End of addition by EKM
+	} else {
+		random_shuffle(allpopnames.begin(), allpopnames.end() );
+	}
+
 	vector<string> tmppopnames;
 	vector<string> tmphold;
 	for (int i = 0; i < allpopnames.size(); i++){
@@ -37,6 +86,10 @@ GraphState2::GraphState2(CountData* counts, PhyloPop_params* pa){
 	tree_bk2 =new PopGraph(startpops);
 	tree_bk3 = new PopGraph(startpops);
 
+	// Start of addition by EKM
+	tree_binary = new PopGraph(startpops);
+	tree_maxllik = new PopGraph(startpops);
+	// End of addition by EKM
 
 	current_npops = 3;
 	sigma = gsl_matrix_alloc(current_npops, current_npops);
@@ -2221,14 +2274,12 @@ double GraphState2::llik_normal(){
 			double pred = gsl_matrix_get(sigma_cor, i, j);
 			double obs = countdata->get_cov(p1, p2);
 			double se = countdata->get_cov_var(p1, p2);
-
 			double dif = obs-pred;
 			//double scale = params->smooth_scale;
 			double toadd = lndgauss(dif, se);
 			toreturn += toadd;
 			//double toadd = gsl_ran_gaussian_pdf(dif, se * scale);
 			//toreturn+= log(toadd);
-
 			//}
 		}
 	}
@@ -2238,9 +2289,10 @@ double GraphState2::llik_normal(){
 double lndgauss(double dif, double se){
 	double toreturn = 0;
 	toreturn += -log (se * sqrt(2.0*M_PI));
-	toreturn += -(dif*dif) /(2*se*se);
+	toreturn += -(dif*dif) / (2*se*se);
 	return toreturn;
 }
+
 int GraphState2::local_hillclimb(int inorder_index){
 	// if there was a rearrangement, return 1. otw 0.
 	//
@@ -5736,3 +5788,1474 @@ void GraphState2::add_mig(string p1, string p2){
 	Graph::vertex_descriptor n2 = pop2node[p2];
 	add_mig( tree->g[n1].index, tree->g[n2].index);
 }
+
+
+// Start of functions added by EKM
+void GraphState2::mlno_print_vertex(Graph::vertex_descriptor v) {
+	cout << " vertex ";
+	cout << tree->g[v].index;
+	if (tree->g[v].is_tip) cout << " (tip " << tree->g[v].name << ")";
+	if (tree->g[v].is_root) cout << " (root)";
+	if (in_degree(v, tree->g) > 1) cout << " (mig target)";
+	if (tree->g[v].is_mig) cout << " (is_mig)";
+	cout << "\n";
+	cout.flush();
+}
+
+
+void GraphState2::mlno_print_edge(Graph::edge_descriptor e) {
+	Graph::vertex_descriptor sv, tv;
+	sv = source(e, tree->g); 
+	tv = target(e, tree->g);
+	cout << " edge " << tree->g[sv].index;
+	if (in_degree(sv, tree->g) > 1) cout << " (mig target)";
+	if (tree->g[sv].is_mig) cout << " (is_mig)";
+	cout << " -> " << tree->g[tv].index;
+	if (tree->g[tv].is_tip) cout << " (tip " << tree->g[tv].name << ")";
+	if (in_degree(tv, tree->g) > 1) cout << " (mig target)";
+	if (tree->g[e].is_mig) cout << " (is_mig)";
+	cout  << "\n";
+	cout.flush();
+}
+
+
+void GraphState2::mlno_print_graph() {
+	// Define variables
+	pair<Graph::out_edge_iterator, Graph::out_edge_iterator> out_eiter;
+        Graph::out_edge_iterator out_ei;
+	queue<Graph::vertex_descriptor> vqueue;
+	set<Graph::vertex_descriptor> vfound;
+	Graph::vertex_descriptor v, tv;	
+
+	cout << " graph with root " << tree->g[tree->root].index << "\n";
+
+	vqueue.push(tree->root);
+	vfound.insert(v);
+	while(vqueue.size() > 0) {
+		v = vqueue.front();
+		out_eiter = out_edges(v, tree->g);
+		for (out_ei = out_eiter.first; out_ei != out_eiter.second; ++out_ei) {
+			mlno_print_edge(*out_ei);
+			tv = target(*out_ei, tree->g);
+			if (vfound.find(tv) == vfound.end())  {
+				vqueue.push(tv);
+				vfound.insert(tv);
+			}
+		}
+		vqueue.pop();
+	}
+	cout.flush();
+}
+
+
+void GraphState2::mlno_print_edges(vector<Graph::edge_descriptor> &edges) {
+	Graph::edge_descriptor e;
+	Graph::vertex_descriptor sv, tv;
+	cout << " edges = [";
+	for (int i = 0; i < edges.size(); i++) {
+		sv = source(edges[i], tree->g);
+		tv = target(edges[i], tree->g);
+		cout << " " << tree->g[sv].index << "->" << tree->g[tv].index;
+	}
+	cout << " ]\n";
+}
+
+pair<int, int> GraphState2::mlno_get_root_eind_to_outgroup() {
+	/*
+ 	 * Get index of edge incident to outgroup
+ 	 *
+ 	 * Added by EKM in January 2021
+ 	 */  
+	if (!params->set_root) {
+		cout << "ERROR in mlno_get_root_eind_to_outgroup: Not outgroup specified by user!\n";
+		exit(1);
+	}
+
+	// Define variables
+        pair<Graph::edge_iterator, Graph::edge_iterator> eiter;
+        Graph::edge_iterator ei;
+        Graph::vertex_descriptor sv, tv;
+        pair<int, int> eind;
+        bool found_out_group;
+	vector<pair<int, int> > root_eind;
+
+	// Find outgroup
+	found_out_group = false;
+	eiter = edges(tree->g);
+	for (ei = eiter.first; ei != eiter.second; ++ei) {
+		tv = target(*ei, tree->g);
+		if (params->root.compare(tree->g[tv].name) == 0) {
+			found_out_group = true;
+			sv = source(*ei, tree->g);
+			break;
+		}
+	}
+
+	if (!found_out_group) {
+		cout << "ERROR in mlno_get_root_eind_to_outgroup: Outgroup does not exist!\n";
+		exit(1);
+	}
+
+	// Store indices
+	eind = make_pair(tree->g[sv].index, tree->g[tv].index);
+	return eind;
+}
+
+
+void GraphState2::mlno_get_root_einds(vector<pair<int, int> > &root_einds) {
+	/* 
+ 	 * Get indices of edges for re-orienting the graph
+ 	 *
+ 	 * Added by EKM in January 2021
+ 	 */ 
+
+	if (!tree->isbinary) {
+		cout << "ERROR in mlno_get_root_einds: Graph is not in the correct format!\n";
+		exit(1);
+	}
+
+	// Define variables
+	pair<Graph::in_edge_iterator, Graph::in_edge_iterator> in_eiter;
+	Graph::in_edge_iterator in_ei;
+	pair<Graph::edge_iterator, Graph::edge_iterator> eiter;
+	Graph::edge_iterator ei;
+	vector<Graph::edge_descriptor> evec;
+	Graph::vertex_descriptor sv, tv;
+	pair<int, int> eind;
+	bool found_root_edge;
+
+	// If rooted at an outgroup
+	if (params->set_root) {
+		eind = mlno_get_root_eind_to_outgroup();
+		root_einds.push_back(eind);
+		return;
+	}
+
+	// Otherwise get all edges,
+	// minus one of the edges incident to the root
+	found_root_edge = false;
+	eiter = edges(tree->g);
+	for (ei = eiter.first; ei != eiter.second; ++ei) {
+		sv = source(*ei, tree->g);
+                tv = target(*ei, tree->g);
+		eind = make_pair(tree->g[sv].index, tree->g[tv].index);
+
+		if (tree->g[sv].is_root) {
+			if (!found_root_edge) {
+				found_root_edge = true;
+				root_einds.push_back(eind);
+			}
+		} else {
+			root_einds.push_back(eind);
+		}
+	}
+}
+
+
+void get_combos_util(vector<vector<int> > &combos, vector<int> &tmp, int n, int left, int k) {
+	/*
+ 	 * Taken from https://www.geeksforgeeks.org/make-combinations-size-k/
+ 	 *
+ 	 * Added by EKM in January 2021
+ 	 */
+  
+	// Pushing this vector to a vector of vector 
+	if (k == 0) {
+        	combos.push_back(tmp);
+        	return;
+    	}
+
+	// i iterates from left to n. First time 
+	// left will be 1 
+	for (int i = left; i <= n; ++i) {
+		tmp.push_back(i);
+		get_combos_util(combos, tmp, n, i + 1, k - 1);
+
+		// Popping out last inserted element 
+		// from the vector 
+		tmp.pop_back();
+	}
+}
+
+
+void GraphState2::mlno_get_admixture_vind_combos(int &nmig, vector<set<int> > &admixture_vind_combos) {
+	/* 
+ 	 * Get sets of admixture vertices for reorientating graph
+ 	 *
+ 	 * NOTE: Here we use admixture to mean target of a migration edge.
+ 	 *
+ 	 * Added by EKM in January 2021
+ 	 */ 
+
+	if (!tree->isbinary) {
+		cout << "ERROR in mlno_get_admixture_vind_combos: Graph is not in the correct format!\n";
+		exit(1);
+	}
+
+	// Define variables
+	pair<Graph::vertex_iterator, Graph::vertex_iterator> viter;
+	Graph::vertex_iterator vi;
+	vector<vector<int> > int_combos;
+	vector<int> vinds, tmp;
+	set<int> vind_set;
+
+	// Get indices of allowed vertices
+	viter = vertices(tree->g);
+	for (vi = viter.first; vi != viter.second; ++vi) {
+		if (!tree->g[*vi].is_tip && !tree->g[*vi].is_root)
+			vind_set.insert(tree->g[*vi].index);
+	}
+	vinds.resize(vind_set.size());
+	copy(vind_set.begin(), vind_set.end(), vinds.begin());
+
+	// Find (n choose k) combinations of integers 1, 2, ..., n
+	int n = vinds.size();
+	int k = nmig;
+	get_combos_util(int_combos, tmp, n, 1, k);
+
+	// Store as admixture vertex sets
+	for (int i = 0; i < int_combos.size(); i++) {
+		vind_set.clear();
+		for (int j = 0; j < int_combos[i].size(); j++)
+			vind_set.insert(vinds[int_combos.at(i).at(j) - 1]);
+		admixture_vind_combos.push_back(vind_set); 
+	}
+}
+
+
+bool GraphState2::mlno_check_if_nonbinary() {
+	/*
+ 	 * Checks that network does not violate conditions for algorithms
+ 	 * added by EKM to work. These conditions are that the tree is
+ 	 * binary and that leaf nodes have in-degree 1.
+ 	 *
+ 	 * Added by EKM in January 2021
+ 	 */
+
+	// Define variables
+	pair<Graph::vertex_iterator, Graph::vertex_iterator> viter;
+	Graph::vertex_iterator vi;
+	int vdeg;
+
+	// Check vertices have required in-degree
+	viter = vertices(tree->g);
+	for (vi = viter.first; vi != viter.second; ++vi) {
+		//cout << "Processing "; mlno_print_vertex(*vi);
+		//cout << "  degree: " << degree(*vi, tree->g) 
+		//     << "  in-degree: " << in_degree(*vi, tree->g)
+		//     << "  out-degree: " << out_degree(*vi, tree->g)
+		//     << "\n";
+
+		vdeg = degree(*vi, tree->g);
+		if (tree->g[*vi].is_root) {
+			if (vdeg != 2) return true;
+		} else if (tree->g[*vi].is_tip) {
+			if (vdeg != 1) return true;
+		} else {
+			if (vdeg != 3) return true;
+		}
+	}
+
+	return false;
+}
+
+
+bool GraphState2::mlno_apply_c1_treebased(Graph::edge_descriptor e, bool is_mig) {
+	/*
+ 	 * Target vertex of edge e has in-degree 2, so in order for e to
+ 	 * be labeled 'is_mig', we need to apply condition C1 from
+ 	 * Francies & Steel, 2015. Recall that C1 says that if one of the
+	 * if one incoming arc is labeled 'tree', then label the other
+	 * incoming arc 'migration' and vice versa.
+	 *
+	 * Added by EKM in January 2021
+	 */
+
+	//cout << "    Checking C1 for label " << is_mig << " and "; mlno_print_edge(e);
+
+	// Define variables
+	pair<Graph::in_edge_iterator, Graph::in_edge_iterator> in_eiter;	
+	Graph::edge_descriptor ne;
+
+	// Get relevant neighboring edge
+	in_eiter = in_edges(target(e, tree->g), tree->g);
+	if (e == *in_eiter.first) in_eiter.first++;
+	ne = *in_eiter.first;
+
+	// Process label for neighboring edge
+	if (tree->g[ne].is_labeled) {
+		if (tree->g[e].is_mig == tree->g[ne].is_mig)
+			return false;
+	} else {
+		mlno_label_and_propagate_treebased(ne, !is_mig);
+	}
+
+	return true;
+}
+
+
+bool GraphState2::mlno_apply_c2_treebased(Graph::edge_descriptor e, bool is_mig) {
+	/*
+ 	 * Source vertex of edge e has out-degree 2, so in order for e to
+ 	 * be labeled 'is_mig', we need to apply condition C2 from
+ 	 * Francies & Steel, 2015. Recall that C2 says that if one of the
+ 	 * outgoing arcs has label 'migration', then label the other
+ 	 * outgoing arc 'tree'.
+ 	 *
+ 	 * Added by EKM in January 2021
+	 */
+
+	//cout << "    Checking C2 for label " << is_mig << " and "; mlno_print_edge(e);
+
+	// Define variables
+	pair<Graph::out_edge_iterator, Graph::out_edge_iterator> out_eiter;
+	Graph::edge_descriptor ne;
+
+	// Get relevant neighboring edge
+	out_eiter = out_edges(source(e, tree->g), tree->g);
+	if (e == *out_eiter.first) out_eiter.first++;
+	ne = *out_eiter.first;
+
+	// Process labeling
+	if (tree->g[ne].is_labeled) {
+		// Validate C2
+		if (tree->g[ne].is_mig && tree->g[e].is_mig)
+			return false;
+	} else {
+		// Propagate label if necessay
+		if (is_mig) {
+			if (!mlno_label_and_propagate_treebased(ne, false))
+				return false;
+		}
+	}
+
+	return true;
+}
+
+
+bool GraphState2::mlno_label_and_propagate_treebased(Graph::edge_descriptor e, bool is_mig) {
+	/*
+ 	 * Assign label 'is_mig' to edge e and propagate the label to the
+	 * surronding edges using conditions C1 and C2 from Francies &
+	 * Steel, 2015.
+	 *
+	 * Added by EKM in January 2021 
+	 */
+	if (tree->g[e].is_labeled) {
+		if (tree->g[e].is_mig != is_mig) return false;
+		return true;
+	}
+
+	//cout << "  Labeling "; mlno_print_edge(e);
+
+	// Label edge
+	tree->g[e].is_labeled = true;	
+	tree->g[e].is_mig = is_mig;
+
+	// Propagate labels using conditions C1 and C2
+	if (in_degree(target(e, tree->g), tree->g) == 2)
+		return mlno_apply_c1_treebased(e, is_mig);
+	else if (out_degree(source(e, tree->g), tree->g) == 2)
+		return mlno_apply_c2_treebased(e, is_mig);
+}
+
+
+bool GraphState2::mlno_label_topology_treebased() {
+	/*
+ 	 * Labels edges of graph topology as either 'tree edges' or
+ 	 * 'migration edges' so that the graph is tree-based. If this
+ 	 * is possible, 'true' is returned; otherwise, 'false' is
+ 	 * returned.
+ 	 *
+ 	 * This is important because TreeMix can only fit branch lengths
+ 	 * if the graph is tree-based. NOTE that if there are multiple
+ 	 * migration targets intersecting the same tree edge, we suppress
+ 	 * migration target vertices, and save this information as the
+ 	 * height (I think). In this representation all non-root vertices
+ 	 * have exactly one incoming tree edge and can have any number of
+ 	 * incoming migration edges.
+ 	 *
+ 	 * We use the algorithm from Francis & Steel, 2015:
+ 	 * https://doi.org/10.1093/sysbio/syv037
+	 *
+	 * Added by EKM in January 2021
+	 */
+
+	if (!tree->isbinary) {
+		cout << "ERROR in mlno_label_topology_treebased: Graph is not in the proper state!\n";
+		exit(1);
+	}
+
+	//cout << "Checking if tree-based\n";
+
+	// Define variables
+	pair<Graph::edge_iterator, Graph::edge_iterator> eiter;
+	Graph::edge_iterator ei;
+	pair<Graph::in_edge_iterator, Graph::in_edge_iterator> in_eiter;
+	Graph::in_edge_iterator in_ei;
+	Graph::edge_descriptor e;
+
+	pair<Graph::vertex_iterator, Graph::vertex_iterator> viter;
+	Graph::vertex_iterator vi;
+	Graph::vertex_descriptor sv, tv;
+
+	// Label arcs that MUST be tree edges i.e. not migration edges
+	eiter = edges(tree->g);
+	for (ei = eiter.first; ei != eiter.second; ++ei) {
+		sv = source(*ei, tree->g);
+		tv = target(*ei, tree->g);
+		if ((tree->g[tv].is_tip) ||
+		    (out_degree(sv, tree->g) == 1) ||
+		    (tree->g[sv].is_root)) {
+			if (!mlno_label_and_propagate_treebased(*ei, false))
+				return false;
+		}
+	}
+
+	// Ensure edges incident to vertices with in-degree 2 are labeled
+	viter = vertices(tree->g);
+	for (vi = viter.first; vi != viter.second; ++vi) {
+		if (in_degree(*vi, tree->g) == 2) {
+			in_eiter = in_edges(*vi, tree->g);
+			e = *in_eiter.first;
+			if (!tree->g[e].is_labeled) {
+				if (!mlno_label_and_propagate_treebased(e, false))
+					return false;
+			}
+		}
+	}
+
+	// Label migration source vertices
+	eiter = edges(tree->g);
+        for (ei = eiter.first; ei != eiter.second; ++ei) {
+		if (tree->g[*ei].is_mig)
+			tree->g[source(*ei, tree->g)].is_mig = true;
+	}
+
+	return true;
+}
+
+
+bool GraphState2::mlno_label_topology_treechild() {
+	/*
+ 	 * Labels edges of graph topology as either 'tree edges' or
+ 	 * 'migration edges' so that the graph is tree-child. If this
+ 	 * is possible, 'true' is returned; otherwise, 'false' is
+ 	 * returned. 
+ 	 *
+	 * Added by EKM in January 2021
+	 */
+
+	if (!tree->isbinary) {
+		cout << "ERROR in mlno_label_topology_treechild: Graph is not in the proper state!\n";
+		exit(1);
+	}
+
+	//cout << "Checking if tree-child\n"; cout.flush();
+
+	// Define variables
+	pair<Graph::in_edge_iterator, Graph::in_edge_iterator> in_eiter;
+	Graph::in_edge_iterator in_ei;
+	pair<Graph::out_edge_iterator, Graph::out_edge_iterator> out_eiter;
+	Graph::out_edge_iterator out_ei;
+	pair<Graph::vertex_iterator, Graph::vertex_iterator> viter;
+	Graph::vertex_iterator vi;
+	Graph::vertex_descriptor tv;
+	bool found_tree_node;
+
+	viter = vertices(tree->g);
+	for (vi = viter.first; vi != viter.second; ++vi) {
+		//cout << "Processing "; mlno_print_vertex(*vi);
+
+		if (!tree->g[*vi].is_tip) {
+			found_tree_node = false;
+			out_eiter = out_edges(*vi, tree->g);
+			for (out_ei = out_eiter.first; out_ei != out_eiter.second; ++out_ei) {
+				tv = target(*out_ei, tree->g);
+				if (in_degree(tv, tree->g) == 1) {
+					found_tree_node = true;
+					break;
+				}
+			}
+			if (!found_tree_node) return false;
+		}
+
+		// Label migration edges and source vertices
+		if (in_degree(*vi, tree->g) == 2) {
+			in_eiter = in_edges(*vi, tree->g);
+			tree->g[*in_eiter.first].is_mig = true;
+			tree->g[source(*in_eiter.first, tree->g)].is_mig = true;
+		}
+	}
+
+	return true;
+}
+
+
+bool GraphState2::mlno_is_labeled_treebased() {
+	/*
+ 	 * Checks if graph is tree-based enough for TreeMix.
+ 	 *
+	 * Added by EKM in January 2021
+	 */
+
+	if (tree->isbinary) {
+		cout << "ERROR in mlno_is_treechild: Graph is not in the proper state!\n";
+		exit(1);
+	}
+
+	//cout << "Checking if tree-child\n"; cout.flush();
+
+	// Define variables
+	pair<Graph::in_edge_iterator, Graph::in_edge_iterator> in_eiter;
+	Graph::in_edge_iterator in_ei;
+	pair<Graph::out_edge_iterator, Graph::out_edge_iterator> out_eiter;
+	Graph::out_edge_iterator out_ei;
+	pair<Graph::vertex_iterator, Graph::vertex_iterator> viter;
+	Graph::vertex_iterator vi;
+	Graph::vertex_descriptor tv;
+	bool found_tree_node;
+
+	viter = vertices(tree->g);
+	for (vi = viter.first; vi != viter.second; ++vi) {
+		//cout << "Processing "; mlno_print_vertex(*vi);
+
+		if (!tree->g[*vi].is_tip) {
+			found_tree_node = false;
+			out_eiter = out_edges(*vi, tree->g);
+			for (out_ei = out_eiter.first; out_ei != out_eiter.second; ++out_ei) {
+				if (!tree->g[*out_ei].is_mig) {
+					found_tree_node = true;
+					break;
+				}
+			}
+			if (!found_tree_node) return false;
+		}
+	}
+
+	return true;
+}
+
+
+
+void GraphState2::mlno_move_root(pair<int, int> &root_eind) {
+	// Define variables
+	pair<Graph::edge_iterator, Graph::edge_iterator> eiter;
+	Graph::edge_iterator ei;
+	pair<Graph::out_edge_iterator, Graph::out_edge_iterator> out_eiter;
+	Graph::out_edge_iterator out_ei;
+	vector<Graph::edge_descriptor> evec;
+	Graph::edge_descriptor e, root_edge;
+	Graph::vertex_descriptor sv, tv, v1, v2;
+	bool found_root_edge;
+
+	// Process new root edge
+	found_root_edge = false;
+	eiter = edges(tree->g);
+	for (ei = eiter.first; ei != eiter.second; ++ei) {
+		sv = source(*ei, tree->g);
+		tv = target(*ei, tree->g);
+		if ((tree->g[sv].index == root_eind.first) && (tree->g[tv].index == root_eind.second)) {
+			//cout << "Do not need to move root\n";
+			found_root_edge = true;
+			root_edge = *ei;
+			break;
+		}
+	}
+
+	if (!found_root_edge) {
+		cout << "ERROR: New root edge "
+		     << root_eind.first << " -> " << root_eind.second
+		     << " does not exist in graph!\n";
+		exit(1);
+	}
+
+	if (tree->root == source(root_edge, tree->g)) return;
+
+	// Suppress root vertex in graph
+	out_eiter = out_edges(tree->root, tree->g);
+	v1 = target(*out_eiter.first, tree->g);
+	out_eiter.first++;
+	v2 = target(*out_eiter.first, tree->g);
+	e = add_edge(v1, v2, tree->g).first;
+	evec.push_back(e);
+	remove_edge(tree->root, v1, tree->g);
+	remove_edge(tree->root, v2, tree->g);
+
+	// Subdivide root edge with root vertex
+	sv = source(root_edge, tree->g);
+	tv  = target(root_edge, tree->g);
+	e = add_edge(tree->root, sv, tree->g).first;
+	evec.push_back(e);
+	e = add_edge(tree->root, tv, tree->g).first;
+	evec.push_back(e);
+	remove_edge(sv, tv, tree->g);
+
+	for (int i = 0; i < evec.size(); i++) {
+		e = evec[i];
+		tree->g[e].weight = 0;
+		tree->g[e].len = 0;
+		tree->g[e].is_labeled = false;
+		tree->g[e].is_mig = false;
+		tree->g[e].is_oriented = false;
+	}
+}
+
+
+bool GraphState2::mlno_reorient_huber2019(pair<int, int> &root_eind, set<int> &admixture_vinds) {
+	/*
+ 	 * Reorient graph using algorithm 1 in Huber et al. 2019
+ 	 *
+ 	 * Added by EKM in January 2021
+ 	 */  
+
+	if (!tree->isbinary) {
+		cout << "ERROR in mlno_reorient_huber2019: Graph is not in the proper state!\n";
+		exit(1);
+	}
+
+	// Define variables
+	pair<Graph::vertex_iterator, Graph::vertex_iterator> viter;
+	Graph::vertex_iterator vi;
+        vector<Graph::vertex_descriptor> vvec;
+	queue<Graph::vertex_descriptor> vqueue;
+	Graph::vertex_descriptor v, sv, tv;
+
+	pair<Graph::edge_iterator, Graph::edge_iterator> eiter;
+	Graph::edge_iterator ei;
+	pair<Graph::in_edge_iterator, Graph::in_edge_iterator> in_eiter;
+	Graph::in_edge_iterator in_ei;
+	pair<Graph::out_edge_iterator, Graph::out_edge_iterator> out_eiter;
+	Graph::out_edge_iterator out_ei;
+	vector<Graph::edge_descriptor> evec;
+	Graph::edge_descriptor e, new_root_edge;
+
+	set<int>::const_iterator it;
+
+	// Print message
+	cout << " root edge = " << root_eind.first << " -> " << root_eind.second
+	     << " admixture vertices = {";
+	for (it = admixture_vinds.begin(); it != admixture_vinds.end(); ++it)
+		cout << " " << *it;
+	//cout << "\n";
+	cout << " }";
+	cout.flush();
+
+	// Process admixture vertices
+	viter = vertices(tree->g);
+	for (vi = viter.first; vi != viter.second; ++vi) {
+		if (admixture_vinds.count(tree->g[*vi].index) > 0) {
+    			tree->g[*vi].desired_indegree = 2;
+		}
+	}
+
+	// Process root vertex
+	mlno_move_root(root_eind);
+
+	out_eiter = out_edges(tree->root, tree->g);
+	for (out_ei = out_eiter.first; out_ei != out_eiter.second; ++out_ei) {
+		//cout << "    Orientating "; mlno_print_edge(*out_ei);
+		tree->g[*out_ei].is_oriented = true;
+
+		tv = target(*out_ei, tree->g);
+		tree->g[tv].current_indegree += 1;
+
+		if (tree->g[tv].current_indegree == tree->g[tv].desired_indegree) {
+			//cout << "    Adding to queue "; mlno_print_vertex(tv);
+			vqueue.push(tv);
+		}	
+	}
+
+	if (vqueue.size() == 0) return false;
+
+	// Process remaining vertices
+	while (vqueue.size() > 0) {
+		v = vqueue.front();
+
+		//cout << "  Processing "; mlno_print_vertex(v);
+
+		// For each unoriented edge
+		out_eiter = out_edges(v, tree->g);
+        	for (out_ei = out_eiter.first; out_ei != out_eiter.second; ++out_ei) {
+			if (!tree->g[*out_ei].is_oriented) {
+				tv = target(*out_ei, tree->g);
+				//cout << "    Orientating "; mlno_print_edge(*out_ei);
+
+				// Edge already oriented away from root
+				tree->g[*out_ei].is_oriented = true;
+
+				// Check if edge's target vertex can  be added to queue
+				tree->g[tv].current_indegree += 1;
+				if (tree->g[tv].current_indegree == tree->g[tv].desired_indegree) {
+					//cout << "    Adding to queue "; mlno_print_vertex(tv);
+					vqueue.push(tv);
+				}
+			}
+        	}
+
+		in_eiter = in_edges(v, tree->g);
+        	for (in_ei = in_eiter.first; in_ei != in_eiter.second; ++in_ei) {
+			if (!tree->g[*in_ei].is_oriented) {
+				sv = source(*in_ei, tree->g);
+				//cout << "    Orientating "; mlno_print_edge(*in_ei);
+
+				// Reverse edge so that it is oriented away from root
+				e = add_edge(v, sv, tree->g).first;
+				evec.push_back(*in_ei);
+				tree->g[e].is_oriented = true;
+
+				// Check if edge's target vertex can be added to queue
+				tree->g[sv].current_indegree += 1;
+				if (tree->g[sv].current_indegree == tree->g[sv].desired_indegree) {
+					//cout << "    Adding to queue "; mlno_print_vertex(sv);
+					vqueue.push(sv);
+				}
+			}
+        	}
+		for (int i = 0; i < evec.size(); i++) remove_edge(evec[i], tree->g);
+		evec.clear();
+
+		vqueue.pop();
+	}
+
+	// Check that all edges have been oriented
+	eiter = edges(tree->g);
+        for (ei = eiter.first; ei != eiter.second; ++ei) {
+		if (!tree->g[*ei].is_oriented) return false;
+	}
+
+	return true;
+}
+
+
+int GraphState2::mlno_treemix_to_binary_graph() {
+	/*
+ 	 * Copies tree to tree_binary and then updates the topology so that
+ 	 * the reorientation algorithm can be run.
+ 	 *
+ 	 * Added by EKM in January 2021
+ 	 */
+
+	if (tree->isbinary) {
+		cout << "ERROR in mlno_treemix_to_binary_graph: Graph is not in the correct format!\n";
+		exit(1);
+	}
+
+	// Define variables
+	pair<Graph::edge_iterator, Graph::edge_iterator> eiter;
+	Graph::edge_iterator ei;
+	pair<Graph::in_edge_iterator, Graph::in_edge_iterator> in_eiter;
+	Graph::in_edge_iterator in_ei;
+	vector<Graph::edge_descriptor> evec;
+	Graph::edge_descriptor e;
+
+	pair<Graph::vertex_iterator, Graph::vertex_iterator> viter;
+	Graph::vertex_iterator vi;
+        vector<Graph::vertex_descriptor> vvec;
+	Graph::vertex_descriptor v, sv, sv1, sv2, tv, newv;
+
+	int nmig;
+	bool is_nonbinary, is_incident_to_root;
+
+	// IMPORTANT for avoiding segfaults
+	e2index.clear();
+	e2frac.clear();
+	e2tips.clear();
+	popname2paths.clear();
+	popnames2index.clear();
+
+	//cout << "Preparing tree for MLNO algorithms\n";
+	tree_binary->copy(tree);
+
+	// Process edges
+	nmig = 0;
+	eiter = edges(tree_binary->g);
+	for (ei = eiter.first; ei != eiter.second; ++ei) {
+		// Store migration target (i.e. admixture) vertices
+		if (tree_binary->g[*ei].is_mig) nmig++;
+
+		// Clean edge attributes
+		tree_binary->g[*ei].weight = 0;
+		tree_binary->g[*ei].len = 0;
+		tree_binary->g[*ei].is_labeled = false;
+		tree_binary->g[*ei].is_mig = false;
+		tree_binary->g[*ei].is_oriented = false;
+	}
+
+	// Find migration target (i.e. admixture vertices)
+	viter = vertices(tree_binary->g);
+	for (vi = viter.first; vi != viter.second; ++vi) {
+		if (in_degree(*vi, tree->g) > 1)
+			vvec.push_back(*vi);
+	}
+
+	// Resolve migration target (i.e. admixture) vertices so they 
+	// out-degree 1 (instead of 0 or 2)
+	for (int i = 0; i < vvec.size(); i++) {
+		v = vvec[i];
+		//cout << "Resolving migration target"; mlno_print_vertex(v);
+
+		// Create new admixture node
+		newv = add_vertex(tree_binary->g);
+		tree_binary->g[newv].name = "NA";
+		tree_binary->g[newv].height = 0;
+		tree_binary->g[newv].is_root = false;
+		tree_binary->g[newv].is_tip = false;
+		tree_binary->g[newv].is_mig = false;
+		tree_binary->g[newv].rev = false;
+		tree_binary->g[newv].index = tree_binary->indexcounter;
+		tree_binary->indexcounter++;
+		//cout << "  Created new"; mlno_print_vertex(newv);
+
+		// Attach admixture edges to new admixture node
+		evec.clear();
+		in_eiter = in_edges(v, tree_binary->g);
+		for (in_ei = in_eiter.first; in_ei != in_eiter.second; ++in_ei) {
+			sv = source(*in_ei, tree_binary->g);
+			e = add_edge(sv, newv, tree_binary->g).first;
+			//cout << "  Adding"; mlno_print_edge(e);
+			evec.push_back(*in_ei);
+		}
+
+		// Remove admixture edges from old admixture node
+		for (int j = 0; j < evec.size(); j++) {
+			//cout << "  Removing"; mlno_print_edge(evec[j]);
+			remove_edge(evec[j], tree_binary->g);
+		}
+
+		// Attach old admixture node to new admixture node
+		e = add_edge(newv, v, tree_binary->g).first;
+		//cout << "  Adding"; mlno_print_edge(e);
+	}
+
+	// TODO: Resolve by height???
+	// Resolve migration target (i.e. admixture) vertices so they
+	// in-degree 2 (instead of >2)
+	for (int i = 0; i < vvec.size(); i++) {
+		in_eiter = in_edges(vvec[i], tree_binary->g);
+		v = source(*in_eiter.first, tree->g);
+
+		if (in_degree(v, tree_binary->g) > 2) {
+			//cout << "Again resolving migration target"; mlno_print_vertex(v);
+
+			cout << "WARNING: May more than one migration edges are entering the same target!\n";
+
+			// Get incoming edges
+			queue<Graph::edge_descriptor> equeue;
+			is_incident_to_root = false;
+			in_eiter = in_edges(v, tree_binary->g);
+			for (in_ei = in_eiter.first; in_ei != in_eiter.second; ++in_ei) {
+				if (source(*in_ei, tree_binary->g) == tree_binary->root) 
+					is_incident_to_root = true;
+				else equeue.push(*in_ei);
+			}
+			if (!is_incident_to_root) equeue.pop();
+
+			while (equeue.size() > 1) {
+				e = equeue.front();
+				sv1 = source(e, tree_binary->g);
+				//cout << "  Removing"; mlno_print_edge(e);
+				remove_edge(e, tree->g);
+				equeue.pop();
+
+				e = equeue.front();
+				sv2 = source(e, tree_binary->g);
+				//cout << "  Removing"; mlno_print_edge(e);
+				remove_edge(e, tree->g);
+				equeue.pop();
+
+				newv = add_vertex(tree_binary->g);
+				tree_binary->g[newv].name = "NA";
+				tree_binary->g[newv].height = 0;
+				tree_binary->g[newv].is_root = false;
+				tree_binary->g[newv].is_tip = false;
+				tree_binary->g[newv].is_mig = false;
+				tree_binary->g[newv].rev = false;
+				tree_binary->g[newv].index = tree_binary->indexcounter;
+				tree_binary->indexcounter++;
+				//cout << "  Created new"; mlno_print_vertex(newv);
+
+				e = add_edge(sv1, newv, tree_binary->g).first;
+				//cout << "  Adding"; mlno_print_edge(e);
+				e = add_edge(sv2, newv, tree_binary->g).first;
+				//cout << "  Adding"; mlno_print_edge(e);
+				e = add_edge(newv, v, tree_binary->g).first;
+				//cout << "  Adding"; mlno_print_edge(e);
+
+				equeue.push(e);
+			}
+		}
+	}
+
+	// Process vertices
+	viter = vertices(tree_binary->g); 
+	for (vi = viter.first; vi != viter.second; ++vi) {
+		tree_binary->g[*vi].desired_indegree = 1;
+		tree_binary->g[*vi].current_indegree = 0;
+		tree_binary->g[*vi].is_mig = false;
+		tree_binary->g[*vi].mig_frac = 0;
+		tree_binary->g[*vi].height = 0;
+		tree_binary->g[*vi].rev = false;
+	}
+	tree_binary->g[tree->root].desired_indegree = 0;
+	tree_binary->g[tree->root].current_indegree = 0;
+	tree_binary->isbinary = true;
+
+	tree->copy(tree_binary);
+
+	// Check graph is now binary
+	is_nonbinary = mlno_check_if_nonbinary();
+	if (is_nonbinary) {
+		cout << "ERROR in mlno_treemix_to_binary_graph: Graph is not binary!\n";
+		exit(1);
+	}
+
+	return nmig;
+}
+
+
+void GraphState2::mlno_binary_to_treemix_graph() {
+	/* Transforms binary graph to TreeMix format
+ 	 * but without the is_mig labels 
+         *
+	 * Added by EKM in January 2021
+ 	 */
+
+	if (!tree->isbinary) {
+		cout << "ERROR in mlno_binary_to_treemix_graph: Graph is not in the correct format!\n";
+		exit(1);
+	}
+
+	// Define variables
+	pair<Graph::in_edge_iterator, Graph::in_edge_iterator> in_eiter;
+	Graph::in_edge_iterator in_ei;
+	pair<Graph::out_edge_iterator, Graph::out_edge_iterator> out_eiter;
+	Graph::out_edge_iterator out_ei;
+	vector<Graph::edge_descriptor> evec;
+	Graph::edge_descriptor e;
+
+	pair<Graph::vertex_iterator, Graph::vertex_iterator> viter;
+	Graph::vertex_iterator vi;
+	vector<Graph::vertex_descriptor> vvec;
+	Graph::vertex_descriptor sv, tv;
+
+	// Suppress migration target vertices (note: migration
+	// target vertices can be stacked so it's important to do
+	// this carefully)
+	viter = vertices(tree->g);
+        for (vi = viter.first; vi != viter.second; ++vi) {
+		if ((in_degree(*vi, tree->g) > 1) && (out_degree(*vi, tree->g) == 1)) {
+			//cout << "  Processing migration "; mlno_print_vertex(*vi);
+			vvec.push_back(*vi);
+
+			// Process outgoing edges
+			out_eiter = out_edges(*vi, tree->g);
+			evec.push_back(*out_eiter.first);
+			tv = target(*out_eiter.first, tree->g);
+
+			// Process incoming edges
+			in_eiter = in_edges(*vi, tree->g);
+			for (in_ei = in_eiter.first; in_ei != in_eiter.second; ++in_ei) {
+				sv = source(*in_ei, tree->g);
+				e = add_edge(sv, tv, tree->g).first;
+				//cout << "    Adding "; mlno_print_edge(e);
+				evec.push_back(*in_ei);
+			}
+
+			// Remove incoming and outgoing edges
+			for (int i = 0; i < evec.size(); i++) {
+				//cout << "    Removing"; mlno_print_edge(evec[i]);
+				remove_edge(evec[i], tree->g);
+			}
+			evec.clear();
+		}
+	}
+
+	// Remove detached vertice from graph
+	for (int i = 0; i < vvec.size(); i++) {
+		//cout << "  Removing migration "; mlno_print_vertex(vvec[i]);
+		remove_vertex(vvec[i], tree->g);
+	}
+
+	tree->isbinary = false;
+}
+
+
+void GraphState2::mlno_fit_graph() {
+	/*
+	 * Fits branch lengths and migration weights to mlno graph
+	 *
+	 * Added by EKM in January 2021
+	 */
+ 
+	if (tree->isbinary) {
+		cout << "ERROR in mlno_fit_graph: Graph is not in the correct format!\n";
+		exit(1);
+	}
+
+	pair<Graph::edge_iterator, Graph::edge_iterator> eiter;
+	Graph::edge_iterator ei;
+	
+	if (params->f2) set_branches_ls_f2();
+	else set_branches_ls();
+	//cout << "Done initial branch length optimization\n"; cout.flush();
+
+	eiter = edges(tree->g);
+	for (ei = eiter.first; ei != eiter.second; ++ei) {
+		// Based on add_mig and add_mig_edge in PopGraph.cpp
+ 		tree->g[*ei].weight = 0.05;
+		if (params->f2) {
+			initialize_migupdate();
+			optimize_weight_quick(*ei);
+		} else {
+			optimize_weight(*ei);
+		}
+	}
+	//cout << "Done inital weight optimization\n";
+
+	if (params->f2) {
+		set_branches_ls_f2();
+		initialize_migupdate();
+		optimize_weights_quick();
+	} else {
+		set_branches_ls();
+		optimize_weights();
+	}
+	//cout << "Done final paramerter optimization\n"; cout.flush();
+
+	// IMPORTANT for avoiding segfaults!
+	e2index.clear();
+	e2frac.clear();
+	e2tips.clear();
+	popname2paths.clear();
+	popnames2index.clear();
+}
+
+
+double GraphState2::mlno_score_graph() {
+	/*
+	 * Fits branch lengths and migration weights to mlno graph
+	 *
+	 * This task is complicated by the fact that the likelihood
+	 * of the graph depends on which edges are selected to be
+	 * migration edges.
+	 *
+	 * Added by EKM in January 2021
+	 */
+ 
+	if (!tree->isbinary) {
+		cout << "ERROR in mlno_score_graph: Graph is not in the correct format!\n";
+		exit(1);
+	}
+
+	// Define variables
+	pair<Graph::in_edge_iterator, Graph::in_edge_iterator> in_eiter;
+	Graph::in_edge_iterator in_ei;
+	pair<Graph::edge_iterator, Graph::edge_iterator> eiter;
+	Graph::edge_iterator ei;
+	list<vector<Graph::edge_descriptor> > combos;
+	vector<vector<Graph::edge_descriptor> > evecs;
+	vector<Graph::edge_descriptor> combo, keep_combo;
+	Graph::edge_descriptor e;
+
+	pair<Graph::vertex_iterator, Graph::vertex_iterator> viter;
+	Graph::vertex_iterator vi;
+	Graph::vertex_descriptor sv, tv, tmp_sv, tmp_tv;
+	double keep_llik, tmp_llik;
+	int total;
+	bool is_treebased;
+
+	keep_llik = -1 * numeric_limits<double>::max();
+
+	// Transform graph from binary to TreeMix format
+	// but without 'is_mig' labels
+	mlno_binary_to_treemix_graph();
+	//cout << "\nTransformed binary to TreeMix:"; mlno_print_graph();
+
+	// Find migration edges by migration target vertex
+	//cout << "Finding migration edges (i.e. edges incident to migration target)\n";
+	viter = vertices(tree->g);
+	for (vi = viter.first; vi != viter.second; ++vi) {
+		if (in_degree(*vi, tree->g) > 1) {
+			vector<Graph::edge_descriptor> new_evec;
+			in_eiter = in_edges(*vi, tree->g);
+			for (in_ei = in_eiter.first; in_ei != in_eiter.second; ++in_ei) {
+				new_evec.push_back(*in_ei);
+			}
+			//mlno_print_edges(new_evec);
+			evecs.push_back(new_evec);
+		}
+	}
+
+	// Find combinations for edge label is_mig = false
+	//cout << "Finding edge combos\n";
+	for (int j = 0; j < evecs[0].size(); j++) {
+		vector<Graph::edge_descriptor> new_combo;
+		new_combo.push_back(evecs.at(0).at(j));
+		combos.push_back(new_combo);
+	}
+	for (int i = 1; i < evecs.size(); i++) {
+		total = combos.size();
+		for (int k = 0; k < total; k++) {
+			vector<Graph::edge_descriptor> tmp_combo = combos.front();
+			for (int j = 0; j < evecs[i].size(); j++) {
+				vector<Graph::edge_descriptor> new_combo;
+				new_combo.resize(tmp_combo.size());
+        			copy(tmp_combo.begin(), tmp_combo.end(), new_combo.begin());
+				new_combo.push_back(evecs.at(i).at(j));
+				//mlno_print_edges(new_combo);
+				combos.push_back(new_combo);
+			}
+			combos.pop_front();
+		}
+	}
+
+	for (std::list<vector<Graph::edge_descriptor> >::iterator it=combos.begin(); it != combos.end(); ++it) {
+		combo = *it;
+		//cout << "Looking at"; mlno_print_edges(combo);
+
+		// Label migration edges
+		for (int j = 0; j < combo.size(); j++) {
+			e = combo.at(j);
+			in_eiter = in_edges(target(e, tree->g), tree->g);
+			for (in_ei = in_eiter.first; in_ei != in_eiter.second; ++in_ei) {
+				tree->g[source(*in_ei, tree->g)].is_mig = false;
+				if (*in_ei == e) {
+					tree->g[*in_ei].is_mig = false;
+					//cout << "Found tree"; mlno_print_edge(*in_ei);
+				} else {
+					tree->g[*in_ei].is_mig = true;
+					//cout << "Found migration"; mlno_print_edge(*in_ei);
+				}
+			}
+		}
+		// Label source vertices
+		eiter = edges(tree->g);
+		for (ei = eiter.first; ei != eiter.second; ++ei) {
+			if (tree->g[*ei].is_mig)
+				tree->g[source(*ei, tree->g)].is_mig = true;
+			
+		}
+
+		bool is_treebased = mlno_is_labeled_treebased();
+		if (!is_treebased) continue;
+
+		//cout << "Labeled"; mlno_print_graph();
+
+		// Fit branch lengths
+		mlno_fit_graph();
+
+		// Compute log-likelihood score
+		tmp_llik = llik();
+		if ((tmp_llik - keep_llik) > mlno_epsilon) {
+			keep_combo = combo;
+			keep_llik = tmp_llik;
+		}
+	}
+
+	// Label migration edges and the source vertices
+	for (int j = 0; j < keep_combo.size(); j++) {
+		e = keep_combo[j];
+		tv = target(e, tree->g);
+		in_eiter = in_edges(tv, tree->g);
+		for (in_ei = in_eiter.first; in_ei != in_eiter.second; ++in_ei) {
+			sv = source(*in_ei, tree->g);
+			if (*in_ei == e) {
+				tree->g[sv].is_mig = false;
+				tree->g[*in_ei].is_mig = false;
+			} else {
+				tree->g[sv].is_mig = true;
+				tree->g[*in_ei].is_mig = true;
+			}
+		}
+	}
+
+	return keep_llik;
+}
+
+
+bool GraphState2::mlno_doit() {
+	/*
+ 	 * Run exhaustive search for maximum likelihood network orientation
+ 	 *
+ 	 * Added by EKM in January 2021
+ 	 */ 
+
+	// Define variables
+	pair<Graph::edge_iterator, Graph::edge_iterator> eiter;
+        Graph::edge_iterator ei;	
+	vector<pair<int, int> > root_einds;
+	vector<set<int> > admixture_vind_combos;  // Change to unordered set
+	double tmp_llik, max_llik;
+	int nmig, total, k;
+	bool is_orientable, is_reoriented;
+
+	mlno_epsilon = 1e-8;
+
+	// Store current graph and its likelihood
+	cout << setprecision(12) << "Entering mlno_doit with llik " << current_llik << "\n"; cout.flush();
+
+	// Refit graph and compute its likelihood
+	eiter = edges(tree->g);
+        for (ei = eiter.first; ei != eiter.second; ++ei) {
+		tree->g[*ei].weight = 0.0;
+	}
+	mlno_fit_graph();
+	current_llik = llik();
+
+	// Store current graph and its likelihood
+	max_llik = current_llik;
+	tree_maxllik->copy(tree);
+	is_reoriented = false;
+
+	//cout << "Starting tree:"; mlno_print_graph();
+
+	// Transform graph from TreeMix format to binary format
+	nmig = mlno_treemix_to_binary_graph();
+	//cout << "Transformed TreeMix to binary:"; mlno_print_graph();
+
+	if (nmig == 0) {
+		cout << "ERROR in mlno_doit: No migration events found!\n";
+		exit(1);
+	}
+
+	// Specify orientations by selecting admixture vertices and root edges
+	// TO DO: Remove use of indicies?? Can probably use admixture vertices if
+	// using tree_mlno?
+	mlno_get_root_einds(root_einds);
+	mlno_get_admixture_vind_combos(nmig, admixture_vind_combos);
+
+	// Evaluate likelihood of all valid orientations
+	total = root_einds.size() * admixture_vind_combos.size();
+	k = 1;
+	for (int i = 0; i < root_einds.size(); i++) {
+		for (int j = 0; j < admixture_vind_combos.size(); j++) {
+			cout << "\n";
+			cout << "Orientation " << k << " / " << total; 
+			cerr << "Orientation " << k << " / " << total << "\n";
+
+			tree->copy(tree_binary);
+			k++;
+
+			// Apply reorientation algorithm
+			is_orientable = mlno_reorient_huber2019(root_einds[i], admixture_vind_combos[j]);
+			if (!is_orientable) continue;
+			cout << " is valid"; cout.flush();
+			//cout << "\nReoriented:"; mlno_print_graph();
+
+			// Fit branch lengths and migration weights and compute likelihood
+			tmp_llik = mlno_score_graph();
+			//cout << "\nScored:"; mlno_print_graph();
+
+			// Compare log-likelihood score
+			cout << setprecision(12) << " has llik " << tmp_llik;  cout.flush();
+			if ((tmp_llik - max_llik) > mlno_epsilon) {
+				cout << " which is higher!";  cout.flush();
+				is_reoriented = true;
+				tree_maxllik->copy(tree);
+				max_llik = tmp_llik;
+			}
+		}
+	}
+
+	tree->copy(tree_maxllik);
+	current_llik = max_llik;
+
+	cout << setprecision(12) << "\nLeaving mlno_doit with llik of " << current_llik << "\n";
+
+	return is_reoriented;
+}
+
+
+bool GraphState2::mlno_reroot_at_outgroup() {
+	/*
+ 	 * Reroot graph at so that the root is incident to the outgroup.
+ 	 *
+ 	 * To do this, we reorient the graph so that it is rooted at the
+ 	 * outgroup, but we DO NOT change the migration target vertices.
+ 	 * This is only possible if the outgroup is NOT a migration
+ 	 * target.
+ 	 *
+ 	 * Added by EKM in January 2021
+ 	 */ 
+
+	// Define variables
+	pair<Graph::edge_iterator, Graph::edge_iterator> eiter;
+        Graph::edge_iterator ei;
+	pair<Graph::vertex_iterator, Graph::vertex_iterator> viter;
+        Graph::vertex_iterator vi;
+	pair<int, int> root_eind;
+	set<int> admixture_vinds;  // Change to unordered set
+	double tmp_llik, bk_llik;
+	int nmig;
+	bool is_orientable;
+
+	cout << "Rerooting at outgroup if necessary...\n";
+
+	mlno_epsilon = 1e-8;
+
+	// Store current graph and its log-likelihood
+	tree_bk->copy(tree);
+        bk_llik = current_llik;
+
+	//cout << "Starting tree:"; mlno_print_graph();
+
+	// Transform graph from TreeMix format to binary format
+	nmig = mlno_treemix_to_binary_graph();
+	//cout << "Transformed TreeMix to binary:"; mlno_print_graph();
+
+	// Find edge incident to root
+	root_eind = mlno_get_root_eind_to_outgroup();
+	if (root_eind.first == tree->g[tree->root].index) {
+		tree->copy(tree_bk);
+		return true;
+	}
+	if (nmig == 0) {
+		tree->copy(tree_bk);
+		place_root(params->root);
+		return true;
+	}
+
+	// Find admixture target vertices
+	// TODO: Make this into a function
+	viter = vertices(tree->g);
+	for (vi = viter.first; vi != viter.second; ++vi) {
+		if (in_degree(*vi, tree->g) == 2)
+			admixture_vinds.insert(tree->g[*vi].index);
+	}
+
+	// Apply reorientation algorithm
+	cout << "Orientation "; cout.flush();
+	is_orientable = mlno_reorient_huber2019(root_eind, admixture_vinds);
+	if (!is_orientable) {
+		cout << " is not valid, skipping...\n";
+		tree->copy(tree_bk);
+		return false;
+	}
+	cout << " is valid\n"; cout.flush();
+	//cout << "Reoriented "; mlno_print_graph();
+
+	// Fit branch lengths and migration weights and compute likelihood
+	tmp_llik = mlno_score_graph();
+
+	if ((bk_llik - tmp_llik) > mlno_epsilon) {
+		cout << "WARNING: Re-rooting graph at outgroup changed llik from " << bk_llik << " to" << tmp_llik << "!\n";
+	}
+
+	return true;
+}
+
+
+void GraphState2::mlno_get_vertices_below(Graph::vertex_descriptor v, set<Graph::vertex_descriptor> &vset) {
+	/*
+ 	 * Put vertex and all vertices below it into a set
+ 	 *
+ 	 * Added by EKM in January 2021
+ 	 */
+
+	// Define variables
+	pair<Graph::out_edge_iterator, Graph::out_edge_iterator> out_eiter;
+	Graph::out_edge_iterator out_ei;
+	queue<Graph::vertex_descriptor> vqueue;
+	Graph::vertex_descriptor u, tu;
+
+	// Add edges at and below to set
+	vqueue.push(v);
+	while (vqueue.size() > 0) {
+		u = vqueue.front();
+		out_eiter = out_edges(u, tree->g);
+		for (out_ei = out_eiter.first; out_ei != out_eiter.second; ++out_ei) {
+			tu = target(*out_ei, tree->g);
+			vset.insert(tu);
+			vqueue.push(tu);
+		}
+		vqueue.pop();
+	} 
+}
+
+pair<bool, pair<int, int> > GraphState2::mlno_add_mig_exhaustive() {
+	/*
+ 	 * Tries all legal ways of adding a migration edge
+ 	 *
+ 	 * Added by EKM in January 2021
+ 	 */ 
+
+	// Define variables
+	Graph::edge_descriptor e;
+	pair<Graph::vertex_iterator, Graph::vertex_iterator> viter;
+        Graph::vertex_iterator vi;
+	vector<pair<Graph::vertex_descriptor, Graph::vertex_descriptor> > vpairs;
+	pair<Graph::vertex_descriptor, Graph::vertex_descriptor> max_vpair;
+	vector<Graph::vertex_descriptor> vvec;
+	set<Graph::vertex_descriptor> vset; 
+	Graph::vertex_descriptor v1, v2;
+	pair<bool, pair<int, int> > toreturn;
+	double max_llik;
+
+	// Store current likelihood
+	max_llik = current_llik;
+	toreturn.first = false;
+
+	// Get all non-root vertex indices
+	// TO DO: Make this into a function
+	viter = vertices(tree->g);
+        for (vi = viter.first; vi != viter.second; ++vi) {
+		if (*vi != tree->root)
+			vvec.push_back(*vi);
+	}
+
+	// Find legal edges to add
+	// TO DO: Make this into a function
+	for (int i = 0; i < vvec.size(); i++) {
+		v1 = vvec[i];
+		mlno_get_vertices_below(v1, vset);
+		for (int j = 0; j < vvec.size(); j++) {
+			v2 = vvec[j];
+			if (tree->g[v2].is_mig) continue;
+			if (vset.find(v2) == vset.end())
+				vpairs.push_back(make_pair(v2, v1));
+		}
+		vset.clear();
+	}
+
+	// Evaluate the likelihood of all legal edges
+	for (int i = 0; i < vpairs.size(); i++) {
+		v1 = vpairs[i].first;
+		v2 = vpairs[i].second;
+
+		//cout << "Evaluating " << tree->g[v1].index << " " << tree->g[v2].index << "\n"; cout.flush();
+
+		e = tree->add_mig_edge(v1, v2);
+		if (params->f2) {
+			initialize_migupdate();
+			optimize_weight_quick(e);
+		} else {
+			optimize_weight(e);
+		}
+
+		if (current_llik > max_llik) {
+			max_llik = current_llik;
+			max_vpair.first = v1;
+			max_vpair.second = v2;
+			toreturn.second.first = tree->g[v1].index;
+			toreturn.second.second = tree->g[v2].index;
+			toreturn.first = true;
+		}
+
+		tree->remove_mig_edge(e);
+		tree->indexcounter--;
+	}
+
+	if (toreturn.first == true) {
+		e = tree->add_mig_edge(max_vpair.first, max_vpair.second);
+		if (params->f2) {
+			initialize_migupdate();
+			optimize_weight_quick(e);
+		} else {
+			optimize_weight(e);
+		}
+	}
+
+	return toreturn;
+}
+// End of functions added by EKM

@@ -61,6 +61,17 @@ PhyloPop_params::PhyloPop_params(){
 	print_hzy = false;
 	seed = 0;
 	num_warnings = -1; // warning suppression - number of warnings to show (-1 indicates show all)
+
+	// Start of parameters added by EKM
+        givenmat = false;
+	matfile = "NA";
+	refittf = false;
+	givenpopaddorder = false;
+	popaddorderfile = "NA";
+        domlno = false;
+	tryallmigs = false;
+	driftunits = false;
+	// End of parameters added by EKM
 }
 
 void PhyloPop_params::read_migfracs(string infile){

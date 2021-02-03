@@ -15,10 +15,18 @@ class CountData{
 public:
 	CountData( CountData*, vector<string>, gsl_matrix*, PhyloPop_params *, gsl_rng *);
 	void set_cov_ran(gsl_matrix * , gsl_rng *);
+
 	CountData(string, PhyloPop_params*);
+
 	CountData(string); //no rescaling (ie. just the allele frequencies)
+
 	void read_counts(string);
 	void read_micro_data(string);
+
+	// Start of functions added by EKM
+	void read_matrix(string);
+	// End of functions added by EKM
+
 	map<string, int> pop2id;
 	map<int, string> id2pop;
 	map<int, double> mean_hzy;

@@ -16,6 +16,8 @@ struct Node
 	string name;
 	double height;
 	float mig_frac;
+	int desired_indegree;  // Added by EKM
+	int current_indegree;  // Added by EKM
 	bool is_tip;
 	bool is_root;
 	bool is_mig;
@@ -26,6 +28,8 @@ struct Dist
 {
 	float weight;
 	float len;
+	bool is_oriented;      // Added by EKM
+	bool is_labeled;       // Added by EKM
 	bool is_mig;
 };
 
@@ -40,8 +44,6 @@ public:
 	// initialize the graph
 	PopGraph();
 
-
-
 	// initialize from a Newick string
 	PopGraph(string);
 	void set_graph(string); //or set it to a Newick string
@@ -53,8 +55,9 @@ public:
 	void copy(PopGraph*);
 	//void copy_helper(Graph::vertex_descriptor, Graph::vertex_descriptor, PopGraph *);
 
-	Graph g;
-	bool istree; // is this a tree? if so, allow shortcuts
+	Graph g;      // BOOST graph
+	bool istree;  // is graph g a tree? if so, allow shortcuts
+	bool isbinary;  // Added by EKM
 	int indexcounter;
 
 	vector<Graph::vertex_descriptor> index2father;
@@ -64,7 +67,6 @@ public:
 
 	Graph::vertex_descriptor add_tip(Graph::vertex_descriptor, string);
 	void remove_tip(Graph::vertex_descriptor);
-
 
 	void set_root(Graph::vertex_descriptor);
 	set<Graph::vertex_descriptor> get_root_adj();
@@ -129,9 +131,6 @@ public:
 	int set_mig_frac(Graph::edge_descriptor, double);
 	//local rearrangements with migration
 	bool local_rearrange_wmig(Graph::vertex_descriptor, int);
-
-
-
 };
 
 #endif /* POPGRAPH_H_ */

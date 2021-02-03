@@ -10,6 +10,14 @@
 
 CountData::CountData(string infile, PhyloPop_params* p){
 	params = p;
+
+	// Start of addition by EKM
+	if (p->givenmat) {
+                read_matrix(infile);
+		return;
+	}
+	// End of addition by EKM
+
 	if (p->micro) {
 		read_micro_data(infile);
 		//cout << "read\n"; cout.flush();
@@ -83,6 +91,110 @@ CountData::CountData(CountData * c, vector<string> names, gsl_matrix* model, Phy
 	//	}
 	//}
 }
+
+
+// Start of functions added by EKM
+void CountData::read_matrix(string infile) {
+	/*
+ 	 * Allows user to give matrix as input instead of allele frequencies.
+ 	 *
+ 	 * Added by EKM in January 2021
+	 */
+
+	// Define variables
+        map<int, string> tmp_id2pop;	
+	ifstream fptr;
+	string line, word;
+	int r, c, i, j, tmp_npop;
+
+	// Read sample covariance matrix OR f2-statistics matrix from file
+	fptr.open(infile.c_str());
+	if (!fptr.is_open()) {
+		cout << "Unable to open " << infile << "\n";
+		exit(1);
+	}
+	
+	// Process population names in first row of file
+	npop = 0;
+	getline(fptr, line);
+	stringstream linestream(line);
+	while (getline(linestream, word, ' ')) {
+		pop2id.insert(pair<string, int>(word, npop));
+		id2pop.insert(pair<int, string>(npop, word));
+		npop += 1;
+	}
+
+	// Set-up 
+	cov = gsl_matrix_alloc(npop, npop);
+	cov_var = gsl_matrix_alloc(npop, npop);
+
+	// Process matrix
+	r = 0;
+	while (getline(fptr, line)) {
+		stringstream linestream(line);
+		c = 0;
+		while(getline(linestream, word, ' ')) {
+			if (c == 0) {
+				i = pop2id[word];
+			} else {
+				j = c - 1;
+				gsl_matrix_set(cov, i, j, atof(word.c_str()));
+				gsl_matrix_set(cov_var, i, j, 0);
+			}
+			c++;
+		}
+		r++;
+	}
+
+	// Clean up
+	fptr.close();
+
+	// If no SE file is given, then assume SE is 0.
+	// Later, SE is shifted by lambda = 0.0001 to avoid arithmetic issues.
+	if (params->matfile.empty()) return;
+
+	// Read standard error matrix from file
+	fptr.open((params->matfile).c_str());
+	if (!fptr.is_open()) {
+		cout << "Unable to open " << params->matfile << "\n";
+		exit(1);
+        }
+
+	// Process population names in first row of file 
+	tmp_npop = 0;
+	getline(fptr, line);
+	stringstream tmp_linestream(line);
+	while (getline(tmp_linestream, word, ' ')) {
+		tmp_id2pop.insert(pair<int, string>(tmp_npop, word));
+		tmp_npop += 1;
+	}
+
+	if (npop != tmp_npop) {
+		cout << "ERROR: Number of populations is not the same in the input matrices!\n";
+		exit(1);
+	}
+
+	// Process matrix
+	r = 0;
+	while (getline(fptr, line)) {
+		stringstream tmp_linestream(line);
+		c = 0;
+		while(getline(tmp_linestream, word, ' ')) {
+			if (c == 0) {
+				i = pop2id[word];
+			} else {
+				j = pop2id[tmp_id2pop[c - 1]];
+				gsl_matrix_set(cov_var, i, j, atof(word.c_str()));
+			}
+			c++;
+		}
+		r++;
+	}
+
+	fptr.close();
+}
+// End of functions added by EKM
+
 
 void CountData::set_cov_ran(gsl_matrix* model,gsl_rng* r){
 
@@ -730,6 +842,7 @@ void CountData::set_cov(){
 		else trim.insert(make_pair(pop, t));
 	}
 	if (!params->sample_size_correct) sumtrim = 0;
+
 	//calculate the covariance matrix in each block
 	cout << "Estimating covariance matrix in "<< nblock << " blocks of size "<< params->window_size <<"\n"; cout.flush();
 	for (int k = 0; k < nblock ; k++){
@@ -1867,7 +1980,6 @@ pair<double, double> CountData::calculate_drift(int p1, int p2){
 		tmpnum = tmpnum/ (double) tmp_nsnp;
 		tmpdenom = tmpdenom/ (double) tmp_nsnp;
 		tmpnum += t1;
-		//cout << pop1 << " "<< meanhzy1 << " "<< mean_n1 << " "<< t1 << " "<< tmpnum << " "<< tmpdenom << "\n";
 		double tmpc = tmpnum/tmpdenom;
 		blocks.push_back(tmpc);
 	}
@@ -1931,7 +2043,6 @@ pair<double, double> CountData::calculate_mean(int p1){
 		tmpnum = tmpnum/ (double) tmp_nsnp;
 		//tmpdenom = tmpdenom/ (double) tmp_nsnp;
 		//tmpnum += t1;
-		//cout << pop1 << " "<< meanhzy1 << " "<< mean_n1 << " "<< t1 << " "<< tmpnum << " "<< tmpdenom << "\n";
 		//double tmpc = tmpnum/tmpdenom;
 		blocks.push_back(tmpnum);
 	}

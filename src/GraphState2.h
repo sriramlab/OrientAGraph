@@ -14,6 +14,14 @@
 #include "PhyloPop_params.h"
 #include "nnls.h"
 
+#include <iomanip>          // Added by EKM
+#include <limits>           // Added by EKM
+#include <list>             // Added by EKM
+#include <queue>            // Added by EKM
+#include <string>           // Added by EKM
+//#include <unordered_set>  // Added by EKM
+#include <vector>           // Added by EKM
+
 class GraphState2{
 public:
 	GraphState2();
@@ -71,6 +79,36 @@ public:
 	int global_hillclimb(int);
 	int many_global_hillclimb();
 	void iterate_global_hillclimb();
+
+	// Start of functions added by EKM
+	PopGraph* tree_binary;
+	PopGraph* tree_maxllik;
+	double mlno_epsilon;
+	bool mlno_doit();
+	int mlno_treemix_to_binary_graph();
+	void mlno_binary_to_treemix_graph();
+	bool mlno_check_if_nonbinary();
+	void mlno_get_root_einds(vector<pair<int, int> > &root_einds);
+	void mlno_get_admixture_vind_combos(int &nmig, vector<set<int> > &admixture_vind_combos);
+	bool mlno_reorient_huber2019(pair<int, int> &root_eind, set<int> &admixture_vinds);
+	void mlno_move_root(pair<int, int> &root_eind);
+	void mlno_fit_graph();
+	double mlno_score_graph();
+	bool mlno_reroot_at_outgroup();
+        pair<int, int> mlno_get_root_eind_to_outgroup();
+	bool mlno_label_topology_treechild();
+	bool mlno_is_labeled_treebased();
+	bool mlno_label_topology_treebased();
+	bool mlno_label_and_propagate_treebased(Graph::edge_descriptor e, bool is_mig);
+	bool mlno_apply_c1_treebased(Graph::edge_descriptor e, bool is_mig);
+	bool mlno_apply_c2_treebased(Graph::edge_descriptor e, bool is_mig);
+	void mlno_print_graph();
+	void mlno_print_edge(Graph::edge_descriptor e);
+	void mlno_print_vertex(Graph::vertex_descriptor v);
+	void mlno_print_edges(vector<Graph::edge_descriptor> &edges);
+	pair<bool, pair<int, int> > mlno_add_mig_exhaustive();
+	void mlno_get_vertices_below(Graph::vertex_descriptor v, set<Graph::vertex_descriptor> &vset);
+	// End of functions added by EKM
 
 	//add a new population
 	void add_pop();

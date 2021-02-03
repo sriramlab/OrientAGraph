@@ -1,8 +1,0 @@
-Quick installation:
-
-./configure
-make
-make install
-
-Full instructions and additional downloads available at:
-http://bitbucket.org/nygcresearch/treemix
