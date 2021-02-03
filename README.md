@@ -33,7 +33,7 @@ export LIBRARY_PATH="$HOME/gsl-2.6-local-install/lib"
 ```
 cd ..
 git clone https://github.com/ekmolloy/OrientAGraph.git
-cd treemix-mlno
+cd OrientAGraph
 ./configure CPPFLAGS=-I${INCLUDE_PATH} LDFLAGS=-L${LIBRARY_PATH}
 make
 ```
