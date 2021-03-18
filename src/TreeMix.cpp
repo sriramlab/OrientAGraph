@@ -45,7 +45,7 @@ void printopts(){
     // Start of additions by EKM
     cout << "\nOrientAGraph Options::\n";
     cout << "-mlno Run maximum likelihood network orientation subroutine as part of search heuristic\n";
-    cout << "-allmigs Try all legal ways of adding a migration edge instead of using the minimum residual heuristic\n";
+    cout << "-allmigs Try all legal ways of adding migration edge to base tree instead of using the minimum residual heuristic\n";
     cout << "-popaddorder [file with list of populations] Specify the order to add populations when building the starting tree\n";
     cout << "-givenmat [se matrix file] Allows user to input matrix (e.g. [stem].cov) with the -i flag, the matrix after this option should contain the standard error (e.g. [stem].covse); if no matrix is provided after this option, then 0.0001 is used.\n";
     // End of additions by EKM
