@@ -300,7 +300,7 @@ int main(int argc, char *argv[]){
     	pair<bool, pair<int, int> > add;
 	if (p.tryallmigs) {
 		// Start of addition by EKM
-		cout << "Performing exhaustive search to add migration edge\n";
+		cout << "Performing exhaustive search to add migration edge to base tree\n";
 		add = state.mlno_add_mig_exhaustive();
 		// End of addition by EKM
 	} else {

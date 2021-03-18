@@ -7175,7 +7175,7 @@ void GraphState2::mlno_get_vertices_below(Graph::vertex_descriptor v, set<Graph:
 
 pair<bool, pair<int, int> > GraphState2::mlno_add_mig_exhaustive() {
 	/*
- 	 * Tries all legal ways of adding a migration edge
+ 	 * Tries all legal ways of adding a migration edge to the base tree
  	 *
  	 * Added by EKM in January 2021
  	 */ 
