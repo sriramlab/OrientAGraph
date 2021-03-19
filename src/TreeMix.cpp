@@ -266,7 +266,18 @@ int main(int argc, char *argv[]){
         else if (p.score == 4) state.mlno_doit();
 
         state.mlno_print_graph_w_params();
+        state.current_llik = state.llik();
+
         cout << "ln(likelihood): " << state.current_llik << "\n";
+        likout << setprecision(12) << state.current_llik << "\n";
+        likout.close();
+
+        if (p.sample_size_correct == true) {
+            map<Graph::edge_descriptor, double> maxw = state.get_edge_maxw();
+            state.tree->print(outstem, maxw);
+        } else {
+            state.print_trimmed(outstem);
+        }
 
         exit(0);
     }
