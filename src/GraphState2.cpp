@@ -5791,6 +5791,60 @@ void GraphState2::add_mig(string p1, string p2){
 
 
 // Start of functions added by EKM
+void GraphState2::mlno_print_edge_w_params(Graph::edge_descriptor e) {
+	Graph::vertex_descriptor sv, tv;
+	sv = source(e, tree->g); 
+	tv = target(e, tree->g);
+
+	// Source vertex info
+	cout << " edge " << tree->g[sv].index;
+	if (tree->g[sv].is_mig) cout << " (is_mig f=" << tree->g[sv].mig_frac << ")";
+	if (in_degree(sv, tree->g) > 1) cout << " (mig target)";
+
+	// Target vertex info
+	cout << " -> " << tree->g[tv].index;
+	if (tree->g[tv].is_tip) cout << "=" << tree->g[tv].name;
+	if (tree->g[tv].is_mig) cout << " (is_mig f=" << tree->g[tv].mig_frac << ")";
+	if (in_degree(tv, tree->g) > 1) cout << " (mig target)";
+
+	// Edge info
+	cout << " : l = " << tree->g[e].len << ", w = " << tree->g[e].weight;
+	if (tree->g[e].is_mig) cout << " (is_mig)";	
+
+	cout << "\n";
+	cout.flush();
+}
+
+
+void GraphState2::mlno_print_graph_w_params() {
+	// Define variables
+	pair<Graph::out_edge_iterator, Graph::out_edge_iterator> out_eiter;
+        Graph::out_edge_iterator out_ei;
+	queue<Graph::vertex_descriptor> vqueue;
+	set<Graph::vertex_descriptor> vfound;
+	Graph::vertex_descriptor v, tv;	
+
+	cout << " graph with root " << tree->g[tree->root].index << "\n";
+
+	vqueue.push(tree->root);
+	vfound.insert(v);
+	while(vqueue.size() > 0) {
+		v = vqueue.front();
+		out_eiter = out_edges(v, tree->g);
+		for (out_ei = out_eiter.first; out_ei != out_eiter.second; ++out_ei) {
+			mlno_print_edge_w_params(*out_ei);
+			tv = target(*out_ei, tree->g);
+			if (vfound.find(tv) == vfound.end())  {
+				vqueue.push(tv);
+				vfound.insert(tv);
+			}
+		}
+		vqueue.pop();
+	}
+	cout.flush();
+}
+
+
 void GraphState2::mlno_print_vertex(Graph::vertex_descriptor v) {
 	cout << " vertex ";
 	cout << tree->g[v].index;
@@ -6023,7 +6077,7 @@ void GraphState2::mlno_get_admixture_vind_combos(int &nmig, vector<set<int> > &a
 }
 
 
-bool GraphState2::mlno_check_if_nonbinary() {
+int GraphState2::mlno_check_if_nonbinary() {
 	/*
  	 * Checks that network does not violate conditions for algorithms
  	 * added by EKM to work. These conditions are that the tree is
@@ -6035,28 +6089,27 @@ bool GraphState2::mlno_check_if_nonbinary() {
 	// Define variables
 	pair<Graph::vertex_iterator, Graph::vertex_iterator> viter;
 	Graph::vertex_iterator vi;
-	int vdeg;
+	int deg, indeg, nmig;
 
-	// Check vertices have required in-degree
+	nmig = 0;
+
 	viter = vertices(tree->g);
 	for (vi = viter.first; vi != viter.second; ++vi) {
-		//cout << "Processing "; mlno_print_vertex(*vi);
-		//cout << "  degree: " << degree(*vi, tree->g) 
-		//     << "  in-degree: " << in_degree(*vi, tree->g)
-		//     << "  out-degree: " << out_degree(*vi, tree->g)
-		//     << "\n";
+		indeg = in_degree(*vi, tree->g);
+		deg = indeg + out_degree(*vi, tree->g);
 
-		vdeg = degree(*vi, tree->g);
 		if (tree->g[*vi].is_root) {
-			if (vdeg != 2) return true;
+			if (deg != 2) return -1;
 		} else if (tree->g[*vi].is_tip) {
-			if (vdeg != 1) return true;
+			if (deg != 1) return -1;
 		} else {
-			if (vdeg != 3) return true;
+			if (deg != 3) return -1;
 		}
+
+		if (indeg == 2) nmig++;
 	}
 
-	return false;
+	return nmig;
 }
 
 
@@ -6393,7 +6446,7 @@ void GraphState2::mlno_move_root(pair<int, int> &root_eind) {
 
 	for (int i = 0; i < evec.size(); i++) {
 		e = evec[i];
-		tree->g[e].weight = 0;
+		tree->g[e].weight = 1;
 		tree->g[e].len = 0;
 		tree->g[e].is_labeled = false;
 		tree->g[e].is_mig = false;
@@ -6501,8 +6554,12 @@ bool GraphState2::mlno_reorient_huber2019(pair<int, int> &root_eind, set<int> &a
 
 				// Reverse edge so that it is oriented away from root
 				e = add_edge(v, sv, tree->g).first;
-				evec.push_back(*in_ei);
+				tree->g[e].weight = 1;
+				tree->g[e].len = 0;
+				tree->g[e].is_labeled = false;
+				tree->g[e].is_mig = false;
 				tree->g[e].is_oriented = true;
+				evec.push_back(*in_ei);  // Remove outside of loop
 
 				// Check if edge's target vertex can be added to queue
 				tree->g[sv].current_indegree += 1;
@@ -6554,8 +6611,8 @@ int GraphState2::mlno_treemix_to_binary_graph() {
         vector<Graph::vertex_descriptor> vvec;
 	Graph::vertex_descriptor v, sv, sv1, sv2, tv, newv;
 
-	int nmig;
-	bool is_nonbinary, is_incident_to_root;
+	int nmig, is_nonbinary;
+	bool is_incident_to_root;
 
 	// IMPORTANT for avoiding segfaults
 	e2index.clear();
@@ -6567,19 +6624,11 @@ int GraphState2::mlno_treemix_to_binary_graph() {
 	//cout << "Preparing tree for MLNO algorithms\n";
 	tree_binary->copy(tree);
 
-	// Process edges
+	// Count number of migration edges
 	nmig = 0;
 	eiter = edges(tree_binary->g);
 	for (ei = eiter.first; ei != eiter.second; ++ei) {
-		// Store migration target (i.e. admixture) vertices
 		if (tree_binary->g[*ei].is_mig) nmig++;
-
-		// Clean edge attributes
-		tree_binary->g[*ei].weight = 0;
-		tree_binary->g[*ei].len = 0;
-		tree_binary->g[*ei].is_labeled = false;
-		tree_binary->g[*ei].is_mig = false;
-		tree_binary->g[*ei].is_oriented = false;
 	}
 
 	// Find migration target (i.e. admixture vertices)
@@ -6589,8 +6638,8 @@ int GraphState2::mlno_treemix_to_binary_graph() {
 			vvec.push_back(*vi);
 	}
 
-	// Resolve migration target (i.e. admixture) vertices so they 
-	// out-degree 1 (instead of 0 or 2)
+	// Resolve migration targets (i.e. admixture vertices)
+	// so they out-degree 1 (instead of 0 or 2)
 	for (int i = 0; i < vvec.size(); i++) {
 		v = vvec[i];
 		//cout << "Resolving migration target"; mlno_print_vertex(v);
@@ -6598,11 +6647,8 @@ int GraphState2::mlno_treemix_to_binary_graph() {
 		// Create new admixture node
 		newv = add_vertex(tree_binary->g);
 		tree_binary->g[newv].name = "NA";
-		tree_binary->g[newv].height = 0;
 		tree_binary->g[newv].is_root = false;
 		tree_binary->g[newv].is_tip = false;
-		tree_binary->g[newv].is_mig = false;
-		tree_binary->g[newv].rev = false;
 		tree_binary->g[newv].index = tree_binary->indexcounter;
 		tree_binary->indexcounter++;
 		//cout << "  Created new"; mlno_print_vertex(newv);
@@ -6628,7 +6674,6 @@ int GraphState2::mlno_treemix_to_binary_graph() {
 		//cout << "  Adding"; mlno_print_edge(e);
 	}
 
-	// TODO: Resolve by height???
 	// Resolve migration target (i.e. admixture) vertices so they
 	// in-degree 2 (instead of >2)
 	for (int i = 0; i < vvec.size(); i++) {
@@ -6638,7 +6683,7 @@ int GraphState2::mlno_treemix_to_binary_graph() {
 		if (in_degree(v, tree_binary->g) > 2) {
 			//cout << "Again resolving migration target"; mlno_print_vertex(v);
 
-			cout << "WARNING: May more than one migration edges are entering the same target!\n";
+			cout << "WARNING: More than one migration edges are entering the same target!\n";
 
 			// Get incoming edges
 			queue<Graph::edge_descriptor> equeue;
@@ -6666,11 +6711,8 @@ int GraphState2::mlno_treemix_to_binary_graph() {
 
 				newv = add_vertex(tree_binary->g);
 				tree_binary->g[newv].name = "NA";
-				tree_binary->g[newv].height = 0;
 				tree_binary->g[newv].is_root = false;
 				tree_binary->g[newv].is_tip = false;
-				tree_binary->g[newv].is_mig = false;
-				tree_binary->g[newv].rev = false;
 				tree_binary->g[newv].index = tree_binary->indexcounter;
 				tree_binary->indexcounter++;
 				//cout << "  Created new"; mlno_print_vertex(newv);
@@ -6687,16 +6729,27 @@ int GraphState2::mlno_treemix_to_binary_graph() {
 		}
 	}
 
+	// Process edges
+	eiter = edges(tree_binary->g);
+	for (ei = eiter.first; ei != eiter.second; ++ei) {
+		tree_binary->g[*ei].weight = 1;
+		tree_binary->g[*ei].len = 0;
+		tree_binary->g[*ei].is_labeled = false;
+		tree_binary->g[*ei].is_mig = false;
+		tree_binary->g[*ei].is_oriented = false;
+	}
+
 	// Process vertices
 	viter = vertices(tree_binary->g); 
 	for (vi = viter.first; vi != viter.second; ++vi) {
 		tree_binary->g[*vi].desired_indegree = 1;
 		tree_binary->g[*vi].current_indegree = 0;
 		tree_binary->g[*vi].is_mig = false;
-		tree_binary->g[*vi].mig_frac = 0;
-		tree_binary->g[*vi].height = 0;
+		tree_binary->g[*vi].mig_frac = 0;  // Set to 0.5 if is_mig is true
+		tree_binary->g[*vi].height = 0;    // How is this variable used?
 		tree_binary->g[*vi].rev = false;
 	}
+
 	tree_binary->g[tree->root].desired_indegree = 0;
 	tree_binary->g[tree->root].current_indegree = 0;
 	tree_binary->isbinary = true;
@@ -6705,14 +6758,13 @@ int GraphState2::mlno_treemix_to_binary_graph() {
 
 	// Check graph is now binary
 	is_nonbinary = mlno_check_if_nonbinary();
-	if (is_nonbinary) {
-		cout << "ERROR in mlno_treemix_to_binary_graph: Graph is not binary!\n";
+	if (is_nonbinary != nmig) {
+		cout << "ERROR in mlno_treemix_to_binary_graph!\n";
 		exit(1);
 	}
 
 	return nmig;
 }
-
 
 void GraphState2::mlno_binary_to_treemix_graph() {
 	/* Transforms binary graph to TreeMix format
@@ -6746,7 +6798,7 @@ void GraphState2::mlno_binary_to_treemix_graph() {
         for (vi = viter.first; vi != viter.second; ++vi) {
 		if ((in_degree(*vi, tree->g) > 1) && (out_degree(*vi, tree->g) == 1)) {
 			//cout << "  Processing migration "; mlno_print_vertex(*vi);
-			vvec.push_back(*vi);
+			vvec.push_back(*vi);  // Remove outside of loop
 
 			// Process outgoing edges
 			out_eiter = out_edges(*vi, tree->g);
@@ -6758,8 +6810,13 @@ void GraphState2::mlno_binary_to_treemix_graph() {
 			for (in_ei = in_eiter.first; in_ei != in_eiter.second; ++in_ei) {
 				sv = source(*in_ei, tree->g);
 				e = add_edge(sv, tv, tree->g).first;
+				tree->g[e].weight = 1;
+				tree->g[e].len = 0;
+				tree->g[e].is_labeled = false;
+				tree->g[e].is_mig = false;
+				tree->g[e].is_oriented = false;
 				//cout << "    Adding "; mlno_print_edge(e);
-				evec.push_back(*in_ei);
+				evec.push_back(*in_ei);  // Remove outside of loop
 			}
 
 			// Remove incoming and outgoing edges
@@ -6771,7 +6828,7 @@ void GraphState2::mlno_binary_to_treemix_graph() {
 		}
 	}
 
-	// Remove detached vertice from graph
+	// Remove detached vertices from graph
 	for (int i = 0; i < vvec.size(); i++) {
 		//cout << "  Removing migration "; mlno_print_vertex(vvec[i]);
 		remove_vertex(vvec[i], tree->g);
@@ -6795,23 +6852,37 @@ void GraphState2::mlno_fit_graph() {
 
 	pair<Graph::edge_iterator, Graph::edge_iterator> eiter;
 	Graph::edge_iterator ei;
-	
+	Graph::vertex_descriptor sv;
+
+	// Re-set graph parameters
+	eiter = edges(tree->g);
+	for (ei = eiter.first; ei != eiter.second; ++ei) {
+		sv = source(*ei, tree->g);
+		if (tree->g[sv].is_mig) tree->g[sv].mig_frac = 0.5;
+		else tree->g[sv].mig_frac = 0.0;
+
+		if (tree->g[*ei].is_mig) tree->g[*ei].weight = 0.1;  // or 0.05
+		else tree->g[*ei].weight = 1;
+
+		tree->g[*ei].len = 0;
+	}
+
 	if (params->f2) set_branches_ls_f2();
 	else set_branches_ls();
-	//cout << "Done initial branch length optimization\n"; cout.flush();
+	//cout << "Done initial branch length optimization\n"; mlno_print_graph_w_params();
 
 	eiter = edges(tree->g);
 	for (ei = eiter.first; ei != eiter.second; ++ei) {
-		// Based on add_mig and add_mig_edge in PopGraph.cpp
- 		tree->g[*ei].weight = 0.05;
-		if (params->f2) {
-			initialize_migupdate();
-			optimize_weight_quick(*ei);
-		} else {
-			optimize_weight(*ei);
+		if (tree->g[*ei].is_mig) {
+			if (params->f2) {
+				initialize_migupdate();
+				optimize_weight_quick(*ei);
+			} else {
+				optimize_weight(*ei);
+			}
 		}
 	}
-	//cout << "Done inital weight optimization\n";
+	//cout << "Done inital weight optimization\n"; mlno_print_graph_w_params();
 
 	if (params->f2) {
 		set_branches_ls_f2();
@@ -6821,7 +6892,7 @@ void GraphState2::mlno_fit_graph() {
 		set_branches_ls();
 		optimize_weights();
 	}
-	//cout << "Done final paramerter optimization\n"; cout.flush();
+	//cout << "Done final paramerter optimization\n"; mlno_print_graph_w_params();
 
 	// IMPORTANT for avoiding segfaults!
 	e2index.clear();
@@ -6843,11 +6914,6 @@ double GraphState2::mlno_score_graph() {
 	 * Added by EKM in January 2021
 	 */
  
-	if (!tree->isbinary) {
-		cout << "ERROR in mlno_score_graph: Graph is not in the correct format!\n";
-		exit(1);
-	}
-
 	// Define variables
 	pair<Graph::in_edge_iterator, Graph::in_edge_iterator> in_eiter;
 	Graph::in_edge_iterator in_ei;
@@ -6869,9 +6935,18 @@ double GraphState2::mlno_score_graph() {
 
 	// Transform graph from binary to TreeMix format
 	// but without 'is_mig' labels
-	mlno_binary_to_treemix_graph();
-	//cout << "\nTransformed binary to TreeMix:"; mlno_print_graph();
-
+	if (tree->isbinary) {
+		mlno_binary_to_treemix_graph();
+		//cout << "\nTransformed binary to TreeMix:"; mlno_print_graph_w_params();
+	} else {
+		eiter = edges(tree->g);
+		for (ei = eiter.first; ei != eiter.second; ++ei) {
+			sv = source(*ei, tree->g);
+			tree->g[sv].is_mig = false;
+			tree->g[*ei].is_mig = false;
+		}
+        }
+	
 	// Find migration edges by migration target vertex
 	//cout << "Finding migration edges (i.e. edges incident to migration target)\n";
 	viter = vertices(tree->g);
@@ -6919,7 +6994,11 @@ double GraphState2::mlno_score_graph() {
 			e = combo.at(j);
 			in_eiter = in_edges(target(e, tree->g), tree->g);
 			for (in_ei = in_eiter.first; in_ei != in_eiter.second; ++in_ei) {
-				tree->g[source(*in_ei, tree->g)].is_mig = false;
+				// Remove mig info for all vertices
+				sv = source(*in_ei, tree->g);
+				tree->g[sv].is_mig = false;
+
+				// Label edge as migration
 				if (*in_ei == e) {
 					tree->g[*in_ei].is_mig = false;
 					//cout << "Found tree"; mlno_print_edge(*in_ei);
@@ -6929,12 +7008,14 @@ double GraphState2::mlno_score_graph() {
 				}
 			}
 		}
-		// Label source vertices
+
+		// Set vertices to be migration sources
 		eiter = edges(tree->g);
 		for (ei = eiter.first; ei != eiter.second; ++ei) {
-			if (tree->g[*ei].is_mig)
-				tree->g[source(*ei, tree->g)].is_mig = true;
-			
+			if (tree->g[*ei].is_mig) {
+				sv = source(*ei, tree->g);
+				tree->g[sv].is_mig = true;
+			}
 		}
 
 		bool is_treebased = mlno_is_labeled_treebased();
@@ -6996,10 +7077,6 @@ bool GraphState2::mlno_doit() {
 	cout << setprecision(12) << "Entering mlno_doit with llik " << current_llik << "\n"; cout.flush();
 
 	// Refit graph and compute its likelihood
-	eiter = edges(tree->g);
-        for (ei = eiter.first; ei != eiter.second; ++ei) {
-		tree->g[*ei].weight = 0.0;
-	}
 	mlno_fit_graph();
 	current_llik = llik();
 
@@ -7008,11 +7085,11 @@ bool GraphState2::mlno_doit() {
 	tree_maxllik->copy(tree);
 	is_reoriented = false;
 
-	//cout << "Starting tree:"; mlno_print_graph();
+	//cout << "Starting tree:"; mlno_print_graph_w_params();
 
 	// Transform graph from TreeMix format to binary format
 	nmig = mlno_treemix_to_binary_graph();
-	//cout << "Transformed TreeMix to binary:"; mlno_print_graph();
+	cout << "Transformed TreeMix to binary:"; mlno_print_graph();
 
 	if (nmig == 0) {
 		cout << "ERROR in mlno_doit: No migration events found!\n";

@@ -65,7 +65,8 @@ PhyloPop_params::PhyloPop_params(){
 	// Start of parameters added by EKM
         givenmat = false;
 	matfile = "NA";
-	refittf = false;
+	refit = false;
+	score = 0;
 	givenpopaddorder = false;
 	popaddorderfile = "NA";
         domlno = false;

@@ -87,7 +87,7 @@ public:
 	bool mlno_doit();
 	int mlno_treemix_to_binary_graph();
 	void mlno_binary_to_treemix_graph();
-	bool mlno_check_if_nonbinary();
+	int mlno_check_if_nonbinary();
 	void mlno_get_root_einds(vector<pair<int, int> > &root_einds);
 	void mlno_get_admixture_vind_combos(int &nmig, vector<set<int> > &admixture_vind_combos);
 	bool mlno_reorient_huber2019(pair<int, int> &root_eind, set<int> &admixture_vinds);
@@ -102,6 +102,8 @@ public:
 	bool mlno_label_and_propagate_treebased(Graph::edge_descriptor e, bool is_mig);
 	bool mlno_apply_c1_treebased(Graph::edge_descriptor e, bool is_mig);
 	bool mlno_apply_c2_treebased(Graph::edge_descriptor e, bool is_mig);
+	void mlno_print_graph_w_params();
+	void mlno_print_edge_w_params(Graph::edge_descriptor e);
 	void mlno_print_graph();
 	void mlno_print_edge(Graph::edge_descriptor e);
 	void mlno_print_vertex(Graph::vertex_descriptor v);

@@ -48,6 +48,8 @@ void printopts(){
     cout << "-allmigs Try all legal ways of adding migration edge to base tree instead of using the minimum residual heuristic\n";
     cout << "-popaddorder [file with list of populations] Specify the order to add populations when building the starting tree\n";
     cout << "-givenmat [se matrix file] Allows user to input matrix (e.g. [stem].cov) with the -i flag, the matrix after this option should contain the standard error (e.g. [stem].covse); if no matrix is provided after this option, then 0.0001 is used.\n";
+    cout << "-refit Allows user to (re)fit model parameters on starting tree (-tf) or graph (-g)\n";
+    cout << "-score [0, 1, 2, 3] Score input tree (-tf) or graph (-g) without refitting (0), with refitting (1), evaluating each base tree and returning the best (2), evaluating each network orientation and returning the best (3)\n";
     // End of additions by EKM
     cout << "\n";
 }
@@ -172,9 +174,17 @@ int main(int argc, char *argv[]){
          p.givenmat = true;
          p.matfile = cmdline.GetArgument("-givenmat", 0);
     }
-    if (cmdline.HasSwitch("-refittf")) {
-	// Allows user to refit branch lengths on the input starting tree (-tf)
-	p.refittf = true;
+    if (cmdline.HasSwitch("-refit")) {
+	// Allows user to refit parameters on the starting tree (-tf) or graph (-g)
+	p.refit = true;
+    }
+    if (cmdline.HasSwitch("-score")) {
+	// Allows user to score input tree (-tf) or graph (-g) and exit
+	// 1 = score as is
+	// 2 = score after refitting
+	// 3 = score each base tree; return best
+	// 4 = score each network orientation; return best
+	p.score = atoi(cmdline.GetArgument("-score", 0).c_str());
     }
     if (cmdline.HasSwitch("-popaddorder")) {
 	// Allows user to specify the order of populations when building the starting tree
@@ -194,6 +204,14 @@ int main(int argc, char *argv[]){
         // TODO: Change units using technique used by MixMapper
         p.driftunits = true;
     }
+
+    if (p.refit || (p.score)) {
+        if (!(p.readtree || p.read_graph)) {
+            cout << "Must use -tf or -g option with -refit or -score!\n";
+            exit(1);
+        }
+    }
+
     // End of parameters added by EKM
 
     //random number generator
@@ -232,26 +250,26 @@ int main(int argc, char *argv[]){
     cout.precision(8);
     if (p.readtree) {
 	state.set_graph_from_file(p.treefile);
-	cout << "Input starting tree = " << state.tree->get_newick_format() << "\n";
-	cout << "Input starting tree ln(lk) = " << state.llik_normal() << "\n";
-
-	if (p.refittf) {
-		// Start of addition by EKM
-		if (p.f2) state.set_branches_ls_f2();
-		else state.set_branches_ls();
-		cout << "Input starting tree after refitting branch lengths = " << state.tree->get_newick_format() << "\n";
-		cout << "Refitted input starting tree ln(lk) = " << state.llik() << "\n";
-		// End of addition by EKM
-	}
+	cout << "Read input tree " << state.tree->get_newick_format() << "\n";
     } else if (p.read_graph){
     	state.set_graph(p.vfile, p.efile);
-    	cout << "Set tree to: "<< state.tree->get_newick_format() << "\n";
-    	//while (state.current_llik <= -DBL_MAX){
-    	//	cout << "RESCALING\n"; cout.flush();
-    	//	p.smooth_scale = p.smooth_scale *2;
-    	//	state.current_llik = state.llik();
-    	//}
-    	cout << "ln(lk) = " << state.current_llik << " \n";
+    	cout << "Read graph with base tree " << state.tree->get_newick_format() << "\n";
+    }
+
+    if (p.score) {
+        if (p.score == 2) state.mlno_fit_graph();
+        else if (p.score == 3) state.mlno_score_graph();
+        else if (p.score == 4) state.mlno_doit();
+
+        state.mlno_print_graph_w_params();
+        cout << "ln(likelihood): " << state.current_llik << "\n";
+
+        exit(0);
+    }
+
+    if (p.readtree || p.read_graph) {
+         if (p.refit) state.mlno_fit_graph();
+         cout << "ln(likelihood): " << state.current_llik << "\n";
     }
 
     // add all populations
@@ -285,6 +303,9 @@ int main(int argc, char *argv[]){
         mltout << "[root] " << state.tree->get_newick_format() << "\n";
     }
 
+    // REMOVE
+    cout << "Before adding edge\n"; state.mlno_print_graph_w_params();
+
     //print the starting likelihood (after tree building)
     likout << setprecision(12) << "Starting ln(likelihood) with "<< state.get_nmig() <<" migration events: "<< state.llik() << " \n";
     if (p.dotarget)	state.target_pop();
@@ -308,7 +329,6 @@ int main(int argc, char *argv[]){
     		else add = state.add_mig_targeted();
 	}
 	if (add.first == true) {
-		cout << "Migration added\n";
     		state.iterate_mig_hillclimb_and_optimweight(add.second, current_nsum);
 		// Start of addition by EKM
 		if (p.domlno) {
@@ -388,6 +408,9 @@ int main(int argc, char *argv[]){
     if (p.sample_size_correct == true) state.tree->print(outstem, maxw);
     else state.print_trimmed(outstem);
     state.print_sigma_cor(modelcovfile);
+
+    cout << "Final Admixture Graph:\n"; state.mlno_print_graph_w_params();
+    cout << "Log-likelihood = " << state.llik() << "\n";
 
     //print the likelihood and number of migration events begin exiting
     likout << setprecision(12) << "Exiting ln(likelihood) with "<< state.get_nmig() <<" migration events: "<< state.llik() << " \n";

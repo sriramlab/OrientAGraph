@@ -117,7 +117,8 @@ public:
 	// Start of parameters added by EKM
 	bool givenmat;
 	string matfile;
-	bool refittf;
+	bool refit;
+	int score;
 	bool givenpopaddorder;
 	string popaddorderfile;
         bool domlno;
