@@ -14,6 +14,7 @@
 string infile;
 string outstem = "OrientAGraph";
 
+
 void printv(){
 	cout << PACKAGE_NAME << " " << PACKAGE_VERSION << "\n\n";
 	cout << "OrientAGraph is built from TreeMix v1.13 Revision 231\n";
@@ -23,6 +24,7 @@ void printv(){
 	cout << "search heuristic.\n\n";
 	cout << "Contact: Erin Molloy (ekmolloy@cs.ucla.edu)\n\n";
 }
+
 
 void printopts(){
     cout << "Options:\n";
@@ -59,6 +61,9 @@ void printopts(){
 }
 
 
+void process_command_line(CCmdLine &cmdline, PhyloPop_params &p);
+void print_treelike_output(ogzstream &treeout, GraphState2 &state, PhyloPop_params &p);
+
 
 int main(int argc, char *argv[]){
     printv();
@@ -70,13 +75,233 @@ int main(int argc, char *argv[]){
     }
     cout << "\n\n";
 
+    // Process parameters options from command line
     CCmdLine cmdline;
-
     PhyloPop_params p;
     if (cmdline.SplitLine(argc, argv) < 1){
     	printopts();
     	exit(0);
     }
+    process_command_line(cmdline, p);
+
+    // Initialize random number generator
+    const gsl_rng_type * T;
+    gsl_rng * r;
+    gsl_rng_env_setup();
+    T = gsl_rng_ranlxs2;
+    r = gsl_rng_alloc(T);
+    int seed = (int) time(0);
+    gsl_rng_set(r, p.seed);
+
+    // Set-up output files
+    string treefile = outstem + ".treeout.gz";
+    string covfile = outstem + ".cov.gz";
+    string modelcovfile = outstem + ".modelcov.gz";
+    string cov_sefile = outstem + ".covse.gz";
+    string llikfile = outstem + ".llik";
+    string mltreefile = outstem + ".mltree";  // Added by EKM
+    ofstream mltout(mltreefile.c_str());  // Added by EKM
+    ofstream likout(llikfile.c_str());
+    ogzstream treeout(treefile.c_str());
+    cout.precision(12);
+
+    // Process the input data - either counts or matrix
+    CountData counts(infile, &p);
+    cout << "Read input data\n";
+    if (p.bootstrap) counts.set_cov_bootstrap(r);
+    if (p.cov_snp) counts.set_cov_singlesnp(p.which_cov_snp);
+    counts.print_cov(covfile);
+    counts.print_cov_var(cov_sefile);
+    //counts.print_cov_samp("test.gz");
+    if (p.smooth_lik) p.smooth_scale = 1; //sqrt((double) counts.nsnp / (double) p.window_size);
+
+    // Initialize a graph state, giving it the input data
+    // and the user-specified parameters
+    GraphState2 state(&counts, &p);
+
+    // Read input tree or graph from file
+    if (p.readtree) {
+	state.set_graph_from_file(p.treefile);
+	cout << "Read input tree " << state.tree->get_newick_format() << "\n";
+    } else if (p.read_graph){
+    	state.set_graph(p.vfile, p.efile);
+    	cout << "Read graph with base tree " << state.tree->get_newick_format() << "\n";
+    }
+
+    // Start of addition by EKM
+    if (p.score) {
+        cout << "Scoring input tree or graph\n";
+
+        if (p.score == 2) state.mlno_fit_graph();
+        else if (p.score == 3) state.mlno_score_graph();
+        else if (p.score == 4) state.mlno_doit();
+
+        state.current_llik = state.llik();
+        cout << "ln(likelihood): " << state.current_llik << "\n";
+        likout << setprecision(12) << "Input ln(likelihood) "
+               << state.llik() << " with " 
+               << state.get_nmig() << " migration events\n";
+        likout.close();
+
+        print_treelike_output(treeout, state, p);
+        if (p.sample_size_correct == true) {
+            map<Graph::edge_descriptor, double> maxw = state.get_edge_maxw();
+            state.tree->print(outstem, maxw);
+        } else {
+            state.print_trimmed(outstem);
+        }
+        state.print_sigma_cor(modelcovfile);
+
+        cout << "Final Admixture Graph:\n"; state.mlno_print_graph_w_params();
+        cout << "Log-likelihood = " << state.current_llik << "\n";
+        cout << "DONE.\n";
+
+        return 0;
+    }
+
+    // Process starting tree
+    if (p.readtree || p.read_graph) {
+         cout << "Refitting parameters on input tree or graph\n";
+         if (p.refit) state.mlno_fit_graph();
+    } else {
+        cout << "Building starting tree via population addition\n";
+        while (counts.npop > state.current_npops) {
+    	    state.add_pop();
+    	    //state.iterate_hillclimb();
+    	    if (p.cor_mig) {
+                p.fitmig = false;
+    		state.iterate_local_hillclimb_wmig_all();
+    		p.fitmig = true;
+    	    } else {
+                state.iterate_hillclimb();
+            }
+    	    cout << "ln(likelihood): " << state.current_llik << " \n";
+    	    cout << state.tree->get_newick_format() << "\n";
+        }
+        mltout << "[starting " << state.current_llik << "] " 
+               << state.tree->get_newick_format() << "\n";
+    }
+
+    // Perform global rearrangements on starting tree
+    if ((p.global) && (!p.read_graph)) {
+    	cout << "Testing global rearrangements\n"; cout.flush();
+    	state.iterate_global_hillclimb();
+
+    	if (p.f2) state.set_branches_ls_f2();
+    	else state.set_branches_ls();
+
+        mltout << "[global " << state.llik() << "] " 
+               << state.tree->get_newick_format() << "\n";
+    }
+
+    // Place root at outgroup
+    if ((p.set_root) && !p.read_graph) {
+        state.place_root(p.root);
+        mltout << "[root " << state.llik() << "] " 
+               << state.tree->get_newick_format() << "\n";
+    }
+    mltout.close();
+
+    // Print the starting likelihood, after tree building
+    likout << setprecision(12) << "Starting ln(likelihood) "
+           << state.llik() << " with " 
+           << state.get_nmig() << " migration events\n";
+
+    // Try to add migration edge around population, specified by user
+    if (p.dotarget) state.target_pop();
+    if (p.climb) state.iterate_all_hillclimb();
+
+    // Add migration edges
+    for (int i = 0; i < p.nmig; i++){
+        // Store log-likelihood
+    	state.current_llik = state.llik();
+       	while (state.current_llik <= -DBL_MAX){
+       		cout << "RESCALING\n"; cout.flush();
+       		p.smooth_scale = p.smooth_scale * 2;
+       		state.current_llik = state.llik();
+       	}
+        
+        // Try to add migration edge
+    	double current_nsum = state.negsum;
+    	pair<bool, pair<int, int> > add;
+	if (p.tryallmigs) {
+		// Start of addition by EKM
+		cout << "Performing exhaustive search to add migration edge to base tree\n";
+		add = state.mlno_add_mig_exhaustive();
+		// End of addition by EKM
+	} else {
+                cout << "Performing targeted search to add migration edge to base tree\n";
+		if (p.f2) add = state.add_mig_targeted_f2();
+    		else add = state.add_mig_targeted();
+	}
+
+        // If successful, do some hillclimbing etc
+	if (add.first == true) {
+    		state.iterate_mig_hillclimb_and_optimweight(add.second, current_nsum);
+		// Start of addition by EKM
+		if (p.domlno) {
+			cout << "Evaluating network orientations\n";
+			bool is_reoriented = state.mlno_doit();
+		}
+		// TODO: Add global hill climbing here!
+		// End of addition by EKM
+	}
+
+        // Re-optimize parameters
+    	state.optimize_weights();
+    	if (p.f2) state.set_branches_ls_f2();
+    	else state.set_branches_ls();
+
+        // Evaluate flipping edge included in base tree
+        state.flip_mig();
+
+        cout << "ln(likelihood):" << state.current_llik << " \n";
+        likout << setprecision(12) << "Current ln(likelihood) "
+               << state.current_llik << " with " 
+               << state.get_nmig() << " migration events\n";
+    }
+
+    if (p.end_mig) state.optimize_weights();
+    if (p.forcemig) {
+    	state.add_mig(p.mig_pops.first, p.mig_pops.second);
+        cout << "ln(likelihood):" << state.llik() << " \n";
+    }
+    if (p.forcemig_index){
+    	state.add_mig(p.mig_index.first, p.mig_index.second);
+        cout << "ln(likelihood):" << state.llik() << " \n";
+    }
+    if (!p.cor_mig && !p.flip && p.nmig > 0) state.flip_mig();
+    if (p.flip) state.flip_mig(p.flipstring);
+
+    if (p.set_root) state.mlno_reroot_at_outgroup();  // Added by EKM
+
+    // Write output files
+    print_treelike_output(treeout, state, p);
+
+    if (p.sample_size_correct == true) {
+        map<Graph::edge_descriptor, double> maxw = state.get_edge_maxw();
+        state.tree->print(outstem, maxw);
+    } else {
+        state.print_trimmed(outstem);
+    }
+
+    state.print_sigma_cor(modelcovfile);
+
+    state.current_llik = state.llik(); 
+    likout << setprecision(12) << "Exiting ln(likelihood) "
+           << state.current_llik << " with "
+           << state.get_nmig() << " migration events\n";
+    likout.close();
+
+    cout << "Final Admixture Graph:\n"; state.mlno_print_graph_w_params();
+    cout << "Log-likelihood = " << state.current_llik << "\n";
+    cout << "DONE.\n";
+
+    return 0;
+}
+
+
+void process_command_line(CCmdLine &cmdline, PhyloPop_params &p) {
     if (cmdline.HasSwitch("-h")) {
         printopts();
         exit(1);
@@ -161,7 +386,6 @@ int main(int argc, char *argv[]){
     	p.f2_mixdist = atof(cmdline.GetArgument("-f2_cor", 2).c_str());
     }
     if (cmdline.HasSwitch("-cor_mig")){
-    	//cout << "Here\n";
      	p.cor_mig = true;
      	//p.corpop = cmdline.GetArgument("-cor_mig", 0);
      	p.read_migfracs(cmdline.GetArgument("-cor_mig", 0) );
@@ -209,229 +433,61 @@ int main(int argc, char *argv[]){
         p.driftunits = true;
     }
 
-    if (p.refit || (p.score)) {
+    if (p.refit || p.score) {
         if (!(p.readtree || p.read_graph)) {
             cout << "Must use -tf or -g option with -refit or -score!\n";
             exit(1);
         }
     }
-
     // End of parameters added by EKM
+}
 
-    //random number generator
-    const gsl_rng_type * T;
-    gsl_rng * r;
-    gsl_rng_env_setup();
-    T = gsl_rng_ranlxs2;
-    r = gsl_rng_alloc(T);
-    int seed = (int) time(0);
-    gsl_rng_set(r, p.seed);
 
-    string treefile = outstem+".treeout.gz";
-    string covfile = outstem+".cov.gz";
-    string modelcovfile = outstem+".modelcov.gz";
-    string cov_sefile = outstem+".covse.gz";
-    string llikfile = outstem+".llik";
-    string mltreefile = outstem + ".mltree";  // Added by EKM
-    ofstream mltout(mltreefile.c_str());  // Added by EKM
-    ofstream likout(llikfile.c_str());
-
-    // Process the input data files
-    //p.bias_correct = false;
-    ogzstream treeout(treefile.c_str());
-    CountData counts(infile, &p);
-    if (p.bootstrap) counts.set_cov_bootstrap(r);
-    if (p.cov_snp) counts.set_cov_singlesnp(p.which_cov_snp);
-    counts.print_cov(covfile);
-    counts.print_cov_var(cov_sefile);
-    //counts.print_cov_samp("test.gz");
-    if (p.smooth_lik) p.smooth_scale = 1; //sqrt( (double) counts.nsnp / (double) p.window_size);
-
-    // Initialize a graph state, giving it the input data
-    // and the user-specified parameters
-    GraphState2 state(&counts, &p);
-
-    cout.precision(8);
-    if (p.readtree) {
-	state.set_graph_from_file(p.treefile);
-	cout << "Read input tree " << state.tree->get_newick_format() << "\n";
-    } else if (p.read_graph){
-    	state.set_graph(p.vfile, p.efile);
-    	cout << "Read graph with base tree " << state.tree->get_newick_format() << "\n";
-    }
-
-    if (p.score) {
-        if (p.score == 2) state.mlno_fit_graph();
-        else if (p.score == 3) state.mlno_score_graph();
-        else if (p.score == 4) state.mlno_doit();
-
-        state.mlno_print_graph_w_params();
-        state.current_llik = state.llik();
-
-        cout << "ln(likelihood): " << state.current_llik << "\n";
-        likout << setprecision(12) << state.current_llik << "\n";
-        likout.close();
-
-        if (p.sample_size_correct == true) {
-            map<Graph::edge_descriptor, double> maxw = state.get_edge_maxw();
-            state.tree->print(outstem, maxw);
-        } else {
-            state.print_trimmed(outstem);
-        }
-
-        exit(0);
-    }
-
-    if (p.readtree || p.read_graph) {
-         if (p.refit) state.mlno_fit_graph();
-         cout << "ln(likelihood): " << state.current_llik << "\n";
-    }
-
-    // add all populations
-    while (!p.readtree && counts.npop > state.current_npops){
-    	state.add_pop();
-    	//state.iterate_hillclimb();
-    	if (p.cor_mig) {
-    		p.fitmig = false;
-    		state.iterate_local_hillclimb_wmig_all();
-    		p.fitmig = true;
-    	} else {
-            state.iterate_hillclimb();
-        }
-    	cout << "ln(likelihood): "<< state.current_llik << " \n";
-    	cout << state.tree->get_newick_format() << "\n";
-    }
-    mltout << "[starting] " << state.tree->get_newick_format() << "\n";
-
-    //do global rearrangements
-    if (p.global){
-    	cout << "Testing global rearrangements\n"; cout.flush();
-    	state.iterate_global_hillclimb();
-    	if (p.f2) state.set_branches_ls_f2();
-    	else state.set_branches_ls();
-        mltout << "[global] " << state.tree->get_newick_format() << "\n";
-    }
-
-    //place the root
-    if (p.set_root) {
-        state.place_root(p.root);
-        mltout << "[root] " << state.tree->get_newick_format() << "\n";
-    }
-
-    // REMOVE
-    cout << "Before adding edge\n"; state.mlno_print_graph_w_params();
-
-    //print the starting likelihood (after tree building)
-    likout << setprecision(12) << "Starting ln(likelihood) with "<< state.get_nmig() <<" migration events: "<< state.llik() << " \n";
-    if (p.dotarget)	state.target_pop();
-    if (p.climb) state.iterate_all_hillclimb();
-    for (int i = 0; i < p.nmig; i++){
-    	state.current_llik = state.llik();
-       	while (state.current_llik <= -DBL_MAX){
-       		cout << "RESCALING\n"; cout.flush();
-       		p.smooth_scale = p.smooth_scale *2;
-       		state.current_llik = state.llik();
-       	}
-    	double current_nsum = state.negsum;
-    	pair<bool, pair<int, int> > add;
-	if (p.tryallmigs) {
-		// Start of addition by EKM
-		cout << "Performing exhaustive search to add migration edge to base tree\n";
-		add = state.mlno_add_mig_exhaustive();
-		// End of addition by EKM
-	} else {
-		if (p.f2) add = state.add_mig_targeted_f2();
-    		else add = state.add_mig_targeted();
-	}
-	if (add.first == true) {
-    		state.iterate_mig_hillclimb_and_optimweight(add.second, current_nsum);
-		// Start of addition by EKM
-		if (p.domlno) {
-			cout << "Evaluating network orientations\n";
-			bool is_reoriented = state.mlno_doit();
-		}
-		// TODO: Add global hill climbing here!
-		// End of addition by EKM
-	}
-
-    	state.optimize_weights();
-    	if (p.f2) state.set_branches_ls_f2();
-    	else state.set_branches_ls();
-        state.flip_mig();
-    	cout << "ln(likelihood):" << state.llik() << " \n";
-    }
-
-    if (p.end_mig) state.optimize_weights();
-    if (p.forcemig) {
-    	state.add_mig(p.mig_pops.first, p.mig_pops.second);
-        cout << "ln(likelihood):" << state.llik() << " \n";
-    }
-    if (p.forcemig_index){
-    	state.add_mig(p.mig_index.first, p.mig_index.second);
-        cout << "ln(likelihood):" << state.llik() << " \n";
-    }
-    if (!p.cor_mig && !p.flip && p.nmig > 0) state.flip_mig();
-    if (p.flip) state.flip_mig(p.flipstring);
-
-    if (p.set_root) state.mlno_reroot_at_outgroup();  // Added by EKM
-
-    // Writing output files
+void print_treelike_output(ogzstream &treeout, GraphState2 &state, PhyloPop_params &p) {
     treeout << state.tree->get_newick_format() << "\n";
+
     if (p.sample_size_correct == false) treeout << state.get_trimmed_newick() << "\n";
+
     pair<Graph::edge_iterator, Graph::edge_iterator> eds = edges(state.tree->g);
     Graph::edge_iterator it = eds.first;
     p.smooth_lik = false;
     while (it != eds.second){
-    	if ( state.tree->g[*it].is_mig){
-     		double w = state.tree->g[*it].weight;
+        if (state.tree->g[*it].is_mig) {
+     	    double w = state.tree->g[*it].weight;
 
-     		treeout << state.tree->g[*it].weight<< " ";
-     		if (p.calc_se){
-        		Graph::vertex_descriptor p1 = source( *it, state.tree->g);
-         		p1 = state.tree->get_child_node_mig(p1);
-         		Graph::vertex_descriptor p2 = target(*it, state.tree->g);
-     			cout << state.tree->get_newick_format(p1) << " ";
-     			cout << state.tree->get_newick_format(p2) << "\n"; cout.flush();
-     			p.neg_penalty = 0;
-     			pair<double, double> se = state.calculate_se(*it);
-     			treeout << se.first << " "<< se.second << " ";
-     			double test = se.first/ se.second;
-     			double pval = 1-gsl_cdf_gaussian_P(test, 1);
-     			if (pval < DBL_MIN){
-     				pval = DBL_MIN;
-     				treeout << "<"<< pval << " ";
-     			}
-     			else{
-     				treeout << pval << " ";
-     			}
-     		}
-     		else treeout << "NA NA NA ";
+            treeout << state.tree->g[*it].weight<< " ";
+            if (p.calc_se){
+                Graph::vertex_descriptor p1 = source( *it, state.tree->g);
+                p1 = state.tree->get_child_node_mig(p1);
+                Graph::vertex_descriptor p2 = target(*it, state.tree->g);
+                cout << state.tree->get_newick_format(p1) << " ";
+     	        cout << state.tree->get_newick_format(p2) << "\n"; cout.flush();
+                p.neg_penalty = 0;
+                pair<double, double> se = state.calculate_se(*it);
+                treeout << se.first << " "<< se.second << " ";
+                double test = se.first/ se.second;
+                double pval = 1-gsl_cdf_gaussian_P(test, 1);
+                if (pval < DBL_MIN){
+     	            pval = DBL_MIN;
+                    treeout << "<"<< pval << " ";
+                } else {
+                    treeout << pval << " ";
+                }
+            } else {
+                treeout << "NA NA NA ";
+            }
 
-     		state.tree->g[*it].weight = w;
-     		if (p.f2) state.set_branches_ls_f2();
-     		else state.set_branches_ls();
+            state.tree->g[*it].weight = w;
+            if (p.f2) state.set_branches_ls_f2();
+            else state.set_branches_ls();
 
-     		Graph::vertex_descriptor p1 = source( *it, state.tree->g);
-     		p1 = state.tree->get_child_node_mig(p1);
-     		Graph::vertex_descriptor p2 = target(*it, state.tree->g);
-     		treeout << state.tree->get_newick_format(p1) << " ";
-     		treeout << state.tree->get_newick_format(p2) << "\n";
-    	}
-		it++;
+            Graph::vertex_descriptor p1 = source( *it, state.tree->g);
+            p1 = state.tree->get_child_node_mig(p1);
+            Graph::vertex_descriptor p2 = target(*it, state.tree->g);
+            treeout << state.tree->get_newick_format(p1) << " ";
+            treeout << state.tree->get_newick_format(p2) << "\n";
+        }
+        it++;
     }
-    map<Graph::edge_descriptor, double> maxw = state.get_edge_maxw();
-    if (p.sample_size_correct == true) state.tree->print(outstem, maxw);
-    else state.print_trimmed(outstem);
-    state.print_sigma_cor(modelcovfile);
-
-    cout << "Final Admixture Graph:\n"; state.mlno_print_graph_w_params();
-    cout << "Log-likelihood = " << state.llik() << "\n";
-
-    //print the likelihood and number of migration events begin exiting
-    likout << setprecision(12) << "Exiting ln(likelihood) with "<< state.get_nmig() <<" migration events: "<< state.llik() << " \n";
-    cout << "DONE.\n";
-
-    likout.close();
-    mltout.close();
-	return 0;
 }
+
