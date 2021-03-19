@@ -27,7 +27,7 @@ void printv(){
 
 
 void printopts(){
-    cout << "Options:\n";
+    cout << "TreeMix Options:\n";
     cout << "-h display this help\n";
     cout << "-i [file name] input file\n";
     cout << "-o [stem] output stem (will be [stem].treeout.gz, [stem].cov.gz, [stem].modelcov.gz)\n";
@@ -45,17 +45,20 @@ void printopts(){
     cout << "-seed [int] Set the seed for random number generation\n";
     cout << "-n_warn [int] Display first N warnings\n"; 
     // Start of additions by EKM
-    cout << "\nOrientAGraph Options::\n";
-    cout << "-mlno Run maximum likelihood network orientation subroutine as part of search heuristic\n";
-    cout << "-allmigs Try all legal ways of adding migration edge to base tree instead of using the minimum residual heuristic\n";
-    cout << "-popaddorder [file with list of populations] Specify the order to add populations when building the starting tree\n";
-    cout << "-givenmat [se matrix file] Allows user to input matrix (e.g. [stem].cov) with the -i flag,\n"
-         << "    the matrix after this option should contain the standard error (e.g. [stem].covse);\n"
-         << "    if no matrix is provided after this option, then 0.0001 is used.\n";
+    cout << "\nOptions for OrientAGraph:\n";
+    cout << "-mlno Run maximum likelihood network orientation (MLNO) as part of search\n";
+    cout << "-allmigs Evaluate all legal ways to add migration edge to base tree as part of search\n";
+    cout << "-popaddorder [file of population names] Order to add populations when building starting tree\n";
+    cout << "-freq2stat Estimate covariances or f2-statistics from allele frequencies and then exit;\n"
+         << "    the resulting files can be given as input using the -givenmat option\n";
+    cout << "-givenmat [se matrix file] Allows user to input matrix (e.g. [stem].cov.gz) with the -i flag,\n"
+         << "    the file after this option should contain the standard error (e.g. [stem].covse.gz);\n"
+         << "    if no file is provided after this option, then 0.0001 is used as the standard error.\n";
     cout << "-refit Allows user to (re)fit model parameters on starting tree (-tf) or graph (-g)\n";
-    cout << "-score [1, 2, 3, 4] Score input tree (-tf) or graph (-g) without refitting (1), with refitting (2),\n"
-         << "    evaluating each base tree and returning the best (3),\n"
-         << "    evaluating each network orientation and returning the best (4)\n";
+    cout << "-score [1, 2, 3, 4] Score input tree (-tf) or graph (-g)\n"
+         << "    (1) without refitting, (2) with refitting,\n"
+         << "    (3) evaluating each base tree and returning the best,\n"
+         << "    (4) evaluating each network orientation and returning the best\n";
     // End of additions by EKM
     cout << "\n";
 }
@@ -104,6 +107,7 @@ int main(int argc, char *argv[]){
     ofstream likout(llikfile.c_str());
     ogzstream treeout(treefile.c_str());
     cout.precision(12);
+    if (p.smooth_lik) p.smooth_scale = 1; //sqrt((double) counts.nsnp / (double) p.window_size);
 
     // Process the input data - either counts or matrix
     CountData counts(infile, &p);
@@ -113,7 +117,8 @@ int main(int argc, char *argv[]){
     counts.print_cov(covfile);
     counts.print_cov_var(cov_sefile);
     //counts.print_cov_samp("test.gz");
-    if (p.smooth_lik) p.smooth_scale = 1; //sqrt((double) counts.nsnp / (double) p.window_size);
+
+    if (p.freq2stat) return 0;
 
     // Initialize a graph state, giving it the input data
     // and the user-specified parameters
@@ -398,6 +403,12 @@ void process_command_line(CCmdLine &cmdline, PhyloPop_params &p) {
     if (cmdline.HasSwitch("-n_warn")) p.num_warnings = atoi(cmdline.GetArgument("-n_warn", 0).c_str());
 
     // Start of parameters added by EKM
+    if (cmdline.HasSwitch("-freq2stat")) {
+         // Allows user to estimate statistics (covariance matrix or f2-statistics) 
+         // from allele frequencies and then exit; the resulting matrices can be
+         // given back to orientagraph using the -givenmat option
+         p.freq2stat = true;
+    }
     if (cmdline.HasSwitch("-givenmat")) {
          p.givenmat = true;
          p.matfile = cmdline.GetArgument("-givenmat", 0);

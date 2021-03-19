@@ -63,6 +63,7 @@ PhyloPop_params::PhyloPop_params(){
 	num_warnings = -1; // warning suppression - number of warnings to show (-1 indicates show all)
 
 	// Start of parameters added by EKM
+	freq2stat = false;
         givenmat = false;
 	matfile = "NA";
 	refit = false;

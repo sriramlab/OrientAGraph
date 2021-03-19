@@ -115,6 +115,7 @@ public:
 	int num_warnings;
 
 	// Start of parameters added by EKM
+	bool freq2stat;
 	bool givenmat;
 	string matfile;
 	bool refit;

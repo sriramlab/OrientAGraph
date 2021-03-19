@@ -102,18 +102,25 @@ void CountData::read_matrix(string infile) {
 	 */
 
 	// Define variables
-        map<int, string> tmp_id2pop;	
-	ifstream fptr;
-	string line, word;
-	int r, c, i, j, tmp_npop;
+	struct stat stFileInfo;
+        map<int, string> tmp_id2pop;
+	igzstream fptr;
+	string line, word, ext;
+	int r, c, i, j, tmp_npop, intStat;
 
 	// Read sample covariance matrix OR f2-statistics matrix from file
-	fptr.open(infile.c_str());
-	if (!fptr.is_open()) {
-		cout << "Unable to open " << infile << "\n";
+	intStat = stat(infile.c_str(), &stFileInfo);
+	if (intStat !=0){
+		std::cerr<< "ERROR: cannot open file " << infile << "\n";
 		exit(1);
 	}
-	
+	ext = infile.substr(infile.size() - 3, 3);
+	if (ext != ".gz") {
+		cout << "WARNING: " << infile 
+		     << " does not end in .gz may have trouble reading!\n";
+	}
+	fptr.open(infile.c_str());
+
 	// Process population names in first row of file
 	npop = 0;
 	getline(fptr, line);
@@ -153,12 +160,18 @@ void CountData::read_matrix(string infile) {
 	// Later, SE is shifted by lambda = 0.0001 to avoid arithmetic issues.
 	if (params->matfile.empty()) return;
 
-	// Read standard error matrix from file
-	fptr.open((params->matfile).c_str());
-	if (!fptr.is_open()) {
-		cout << "Unable to open " << params->matfile << "\n";
+	// Read standard error for sample covariance matrix OR f2-statistics matrix from file
+	intStat = stat(params->matfile.c_str(), &stFileInfo);
+	if (intStat !=0){
+		std::cerr<< "ERROR: cannot open file " << params->matfile << "\n";
 		exit(1);
-        }
+	}
+	ext = infile.substr(params->matfile.size() - 3, 3);
+	if (ext != ".gz") {
+		cout << "WARNING: " << params->matfile 
+		     << " does not end in .gz may have trouble reading!\n";
+	}
+	fptr.open(params->matfile.c_str());
 
 	// Process population names in first row of file 
 	tmp_npop = 0;
@@ -191,6 +204,7 @@ void CountData::read_matrix(string infile) {
 		r++;
 	}
 
+	// Clean up
 	fptr.close();
 }
 // End of functions added by EKM
