@@ -47,9 +47,13 @@ void printopts(){
     cout << "-mlno Run maximum likelihood network orientation subroutine as part of search heuristic\n";
     cout << "-allmigs Try all legal ways of adding migration edge to base tree instead of using the minimum residual heuristic\n";
     cout << "-popaddorder [file with list of populations] Specify the order to add populations when building the starting tree\n";
-    cout << "-givenmat [se matrix file] Allows user to input matrix (e.g. [stem].cov) with the -i flag, the matrix after this option should contain the standard error (e.g. [stem].covse); if no matrix is provided after this option, then 0.0001 is used.\n";
+    cout << "-givenmat [se matrix file] Allows user to input matrix (e.g. [stem].cov) with the -i flag,\n"
+         << "    the matrix after this option should contain the standard error (e.g. [stem].covse);\n"
+         << "    if no matrix is provided after this option, then 0.0001 is used.\n";
     cout << "-refit Allows user to (re)fit model parameters on starting tree (-tf) or graph (-g)\n";
-    cout << "-score [0, 1, 2, 3] Score input tree (-tf) or graph (-g) without refitting (0), with refitting (1), evaluating each base tree and returning the best (2), evaluating each network orientation and returning the best (3)\n";
+    cout << "-score [1, 2, 3, 4] Score input tree (-tf) or graph (-g) without refitting (1), with refitting (2),\n"
+         << "    evaluating each base tree and returning the best (3),\n"
+         << "    evaluating each network orientation and returning the best (4)\n";
     // End of additions by EKM
     cout << "\n";
 }
