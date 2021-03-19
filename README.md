@@ -84,7 +84,13 @@ TreeMix Options:
 
 OrientAGraph Options:
 -mlno Run maximum likelihood network orientation subroutine as part of search heuristic
--allmigs Try all legal ways of adding a migration edge instead of using the minimum residual heuristic
+-allmigs Try all legal ways of adding migration edge to base tree instead of using the minimum residual heuristic
 -popaddorder [file with list of populations] Specify the order to add populations when building the starting tree
--givenmat [se matrix file] Allows user to input matrix (e.g. [stem].cov) with the -i flag, the matrix after this option should contain the standard error (e.g. [stem].covse); if no matrix is provided after this option, then 0.0001 is used.\n"
+-givenmat [se matrix file] Allows user to input matrix (e.g. [stem].cov) with the -i flag, 
+    the matrix after this option should contain the standard error (e.g. [stem].covse); 
+    if no matrix is provided after this option, then 0.0001 is used.
+-refit Allows user to (re)fit model parameters on starting tree (-tf) or graph (-g)
+-score [1, 2, 3, 4] Score input tree (-tf) or graph (-g) without refitting (0), with refitting (1),
+    evaluating each base tree and returning the best (2), or
+    evaluating each network orientation and returning the best (3)
 ```
