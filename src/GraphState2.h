@@ -48,14 +48,14 @@ public:
 	gsl_matrix *scatter; //current scatter matrix
 	double phi, resphi;
 
-	//set the graph structure to a Newick string
-	void set_graph(string);
-	void set_graph_from_file(string);
-	void set_graph_from_string(string);
 	void set_countdata(CountData*);
-	//set graph from files with the vertices and edges
-	void set_graph(string, string);
+
+	//set the graph structure to a Newick string
 	void set_graph(GraphState2*);
+	void set_graph(string);
+	void set_graph_from_string(string);
+	void set_graph_from_file(string);  // newick string
+	void set_graph_from_file(string, string);  // vertices and edges files
 
 	//set the root to a given clade
 	void place_root(string);
@@ -84,18 +84,29 @@ public:
 	PopGraph* tree_binary;
 	PopGraph* tree_maxllik;
 	double mlno_epsilon;
+
+	void mlno_fit_graph();
 	bool mlno_doit();
+	void mlno_mlbt_only_doit();
+	bool mlno_reroot_at_outgroup();
+
+	bool mlno_find_best_orientation();
+	double mlno_find_best_base_tree();
+
+	void mlno_compute_sigma_cor();
+	void mlno_compute_sigma_cor_cov();
+	void mlno_compute_sigma_cor_f2();
+
 	int mlno_treemix_to_binary_graph();
 	void mlno_binary_to_treemix_graph();
 	int mlno_check_if_nonbinary();
+
 	void mlno_get_root_einds(vector<pair<int, int> > &root_einds);
 	void mlno_get_admixture_vind_combos(int &nmig, vector<set<int> > &admixture_vind_combos);
 	bool mlno_reorient_huber2019(pair<int, int> &root_eind, set<int> &admixture_vinds);
 	void mlno_move_root(pair<int, int> &root_eind);
-	void mlno_fit_graph();
-	double mlno_score_graph();
-	bool mlno_reroot_at_outgroup();
-        pair<int, int> mlno_get_root_eind_to_outgroup();
+
+	pair<int, int> mlno_get_root_eind_to_outgroup();
 	bool mlno_label_topology_treechild();
 	bool mlno_is_labeled_treebased();
 	bool mlno_label_topology_treebased();
@@ -108,6 +119,7 @@ public:
 	void mlno_print_edge(Graph::edge_descriptor e);
 	void mlno_print_vertex(Graph::vertex_descriptor v);
 	void mlno_print_edges(vector<Graph::edge_descriptor> &edges);
+
 	pair<bool, pair<int, int> > mlno_add_mig_exhaustive();
 	void mlno_get_vertices_below(Graph::vertex_descriptor v, set<Graph::vertex_descriptor> &vset);
 	// End of functions added by EKM

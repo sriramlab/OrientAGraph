@@ -142,8 +142,11 @@ void GraphState2::print_sigma(){
 	}
 }
 
-void GraphState2::set_graph(string newick){
+void GraphState2::set_graph(string newick) {
+	cout << "WARNING: Check function before using!\n";
+
 	tree->set_graph(newick);
+
 	current_npops = allpopnames.size();
 	gsl_matrix_free(sigma);
 	sigma = gsl_matrix_alloc(current_npops, current_npops);
@@ -152,14 +155,17 @@ void GraphState2::set_graph(string newick){
 	sigma_cor = gsl_matrix_alloc(current_npops, current_npops);
 	gsl_matrix_set_zero(sigma_cor);
 
-    set_branches_ls_wmig();
-
-    current_llik = llik();
+	set_branches_ls_wmig();
+	current_llik = llik();
 }
 
 void GraphState2::set_graph(GraphState2* g){
-	tree->copy( g->tree);
+	cout << "WARNING: Check function before using!\n";
+
+	tree->copy(g->tree);
+
 	current_npops = allpopnames.size();
+
 	gsl_matrix_free(sigma);
 	sigma = gsl_matrix_alloc(current_npops, current_npops);
 	gsl_matrix_set_zero(sigma);
@@ -167,181 +173,269 @@ void GraphState2::set_graph(GraphState2* g){
 	sigma_cor = gsl_matrix_alloc(current_npops, current_npops);
 	gsl_matrix_set_zero(sigma_cor);
 
-    set_branches_ls_wmig();
-    cout << llik()<< "\n";
-    current_llik = llik();
-
+	set_branches_ls_wmig();
+	current_llik = llik();
 }
-void GraphState2::set_graph(string vfile, string efile){
-	igzstream vin(vfile.c_str());
-	tree->g.clear();
-    vector<string> line;
-    struct stat stFileInfo;
-    int intStat;
-    current_npops = 0;
-    tree->popnames.clear();
 
-    intStat = stat(vfile.c_str(), &stFileInfo);
-    if (intStat !=0){
-            std::cerr<< "ERROR: cannot open file " << vfile << "\n";
-            exit(1);
-    }
-    string st;
-    while(getline(vin, st)){
-    	string buf;
+void GraphState2::set_graph_from_file(string vfile, string efile) {
+	// Define variables
+	struct stat stFileInfo;
+
+	pair<Graph::in_edge_iterator, Graph::in_edge_iterator> in_eiter;
+        Graph::in_edge_iterator in_ei;
+	pair<Graph::out_edge_iterator, Graph::out_edge_iterator> out_eiter;
+        Graph::out_edge_iterator out_ei;
+	pair<Graph::vertex_iterator, Graph::vertex_iterator> viter;
+        Graph::vertex_iterator vi;
+	vector<string>::iterator it;
+
+	map<string, Graph::vertex_descriptor> tips;
+	map<int, Graph::vertex_descriptor> i2v;
+	queue<Graph::vertex_descriptor> vqueue;
+	set<Graph::vertex_descriptor> vfound;
+	vector<string> line;
+
+	Graph::edge_descriptor e;
+	Graph::vertex_descriptor v, sv, tv;
+
+	string st;
+	float len, w, mig_frac, totalw;
+	int nv, index, index1, index2, intStat;
+
+	// Set-up
+	tree->g.clear();
+	current_npops = 0;
+	tree->popnames.clear();
+
+	// Process vertex file
+	intStat = stat(vfile.c_str(), &stFileInfo);
+	if (intStat != 0) {
+		std::cerr<< "ERROR: cannot open file " << vfile << "\n";
+		exit(1);
+	}
+	igzstream vin(vfile.c_str());
+
+	nv = 0;
+	while(getline(vin, st)){
+		string buf;
 		stringstream ss(st);
 		line.clear();
-		while (ss>> buf){
+		while (ss >> buf){
 			line.push_back(buf);
 		}
-		int index = atoi(line[0].c_str());
+
+		index = atoi(line[0].c_str());
 		if (index >= tree->indexcounter) tree->indexcounter = index+1;
+
 		string name = line[1];
 		string root = line[2];
 		string mig = line[3];
 		string tip = line[4];
-		Graph::vertex_descriptor v= add_vertex(tree->g);
+
+		v = add_vertex(tree->g);
+
 		tree->g[v].index = index;
 		tree->g[v].name = name;
-		tree->g[v].mig_frac = 1;
+
 		if (root == "ROOT") {
 			tree->g[v].is_root = true;
 			tree->root = v;
+		} else {
+			tree->g[v].is_root = false;
 		}
-		else tree->g[v].is_root = false;
 		if (mig == "MIG") {
 			tree->g[v].is_mig = true;
 			tree->g[v].mig_frac = 0.5;
+		} else {
+			tree->g[v].is_mig = false;
+			tree->g[v].mig_frac = 0.0;  // EKM: Changed 1 to 0 based on PopGraph
 		}
-		else tree->g[v].is_mig = false;
 		if (tip == "TIP") {
 			tree->g[v].is_tip = true;
 			current_npops++;
 			tree->popnames.push_back(name);
+		} else {
+			tree->g[v].is_tip = false;
 		}
-		else tree->g[v].is_tip = false;
+
+		tree->g[v].height = 0.0;           // Added by EKM based on PopGraph
+		tree->g[v].desired_indegree = -1;  // Added by EKM
+		tree->g[v].current_indegree = -1;  // Added by EKM
 		tree->g[v].rev = false;
-     }
 
-	igzstream ein(efile.c_str());
-	map<int, Graph::vertex_descriptor> i2v = tree->index2vertex();
-    intStat = stat(efile.c_str(), &stFileInfo);
-    if (intStat !=0){
-            std::cerr<< "ERROR: cannot open file " << efile << "\n";
-            exit(1);
-    }
-    while(getline(ein, st)){
-    	string buf;
-		stringstream ss(st);
-		line.clear();
-		while (ss>> buf){
-			line.push_back(buf);
-		}
-		int index1 = atoi(line[0].c_str());
-		int index2 = atoi(line[1].c_str());
-		float len = atof(line[2].c_str());
-		float w = atof(line[3].c_str());
-		string mig= line[4];
-		Graph::edge_descriptor e = add_edge( i2v[index1], i2v[index2], tree->g).first;
-		Graph::vertex_descriptor t = i2v[index2];
-		if (tree->g[t].is_mig) w = 1;
-		tree->g[e].len = len;
-		tree->g[e].weight = w;
-		if (mig == "MIG") {
-			//cout << "here\n";
-			tree->g[e].is_mig = true;
-			//float mig_frac = atof(line[5].c_str());
-			//tree->set_mig_frac(e, mig_frac);
-			//cout << "not here\n";
-		}
-		else tree->g[e].is_mig = false;
-    }
-    ein.close();
-    igzstream ein2(efile.c_str());
-    while(getline(ein2, st)){
-     	string buf;
- 		stringstream ss(st);
- 		line.clear();
- 		while (ss>> buf){
- 			line.push_back(buf);
- 		}
- 		int index1 = atoi(line[0].c_str());
- 		int index2 = atoi(line[1].c_str());
- 		string mig= line[4];
- 		Graph::edge_descriptor e = edge( i2v[index1], i2v[index2], tree->g).first;
- 		if (mig == "MIG") {
- 			//cout << "here\n";
- 			//tree->g[e].is_mig = true;
- 			float mig_frac = atof(line[5].c_str());
- 			//tree->set_mig_frac(e, mig_frac);
- 			//cout << "not here\n";
- 		}
-     }
-    //tree->print();
-	gsl_matrix_free(sigma);
-	sigma = gsl_matrix_alloc(current_npops, current_npops);
-	gsl_matrix_set_zero(sigma);
-	gsl_matrix_free(sigma_cor);
-	sigma_cor = gsl_matrix_alloc(current_npops, current_npops);
-	gsl_matrix_set_zero(sigma_cor);
+		++nv;
+	}
+	vin.close();
+	i2v = tree->index2vertex();
 
-	if (params->f2) set_branches_ls_f2();
-	else set_branches_ls();
-
-    current_llik = llik();
-}
-
-void GraphState2::set_graph_from_file(string infile){
-	ifstream in(infile.c_str());
-    vector<string> line;
-    struct stat stFileInfo;
-    int intStat;
-    string st, buf;
-    intStat = stat(infile.c_str(), &stFileInfo);
-    if (intStat !=0){
-            std::cerr<< "ERROR: cannot open file " << infile << "\n";
-            exit(1);
-    }
-    getline(in, st);
-    current_npops = allpopnames.size();
-	gsl_matrix_free(sigma);
-	sigma = gsl_matrix_alloc(current_npops, current_npops);
-	gsl_matrix_set_zero(sigma);
-	gsl_matrix_free(sigma_cor);
-	sigma_cor = gsl_matrix_alloc(current_npops, current_npops);
-	gsl_matrix_set_zero(sigma_cor);
-
-    cout << "Reading tree topology from file:\n";
-    cout << st << "\n"; cout.flush();
-	tree->set_graph(st);
-
-	map<string, Graph::vertex_descriptor> tips = tree->get_tips(tree->root);
-	//cerr << "ERROR: Input Newick string with "<< tips.size() << " populations. Input file has "<< current_npops  <<"\n";
-	//for (map<string, Graph::vertex_descriptor>::iterator it = tips.begin(); it != tips.end(); it++){
-	//	cout << it->first << " "<< tree->g[it->second].name << "\n";
-	//}
-	if (tips.size()  != current_npops){
-		cerr << "ERROR: Input Newick string with "<< tips.size() << " populations. Input file has "<< current_npops  <<"\n";
+	// Process edge file
+	intStat = stat(efile.c_str(), &stFileInfo);
+	if (intStat != 0) {
+		std::cerr<< "ERROR: cannot open file " << efile << "\n";
 		exit(1);
 	}
-	for ( vector<string>::iterator it = allpopnames.begin(); it != allpopnames.end(); it++){
+	igzstream ein(efile.c_str());
+
+	while(getline(ein, st)) {
+		string buf;
+		stringstream ss(st);
+		line.clear();
+		while (ss >> buf){
+			line.push_back(buf);
+		}
+
+		index1 = atoi(line[0].c_str());
+		index2 = atoi(line[1].c_str());
+		len = atof(line[2].c_str());
+		w = atof(line[3].c_str());
+		string mig = line[4];
+		mig_frac = atof(line[5].c_str());  // EKM: Doesn't get used?
+
+		if ((len < 0) || (w < 0)) {
+			cerr << "ERROR: Input graph has negative branch lengths or weights!\n";
+			exit(1);
+		}
+
+		sv = i2v[index1];
+		tv = i2v[index2];
+		e = add_edge(sv, tv, tree->g).first;
+
+		if (mig == "MIG") tree->g[e].is_mig = true;
+		else tree->g[e].is_mig = false;
+		if (tree->g[e].is_mig && !tree->g[sv].is_mig) {
+			cerr << "ERROR: Input graph is broken!\n";
+			exit(1);
+		}
+
+		tree->g[e].len = len;
+		if (tree->g[e].is_mig) len = 0.0;
+		tree->g[e].weight = w;
+		tree->g[e].is_labeled = false;   // Added by EKM
+		tree->g[e].is_oriented = false;  // Added by EKM
+	}
+	ein.close();
+
+	// Check leaves match input data... 
+	tips = tree->get_tips(tree->root);
+	if (tips.size()  != current_npops){
+		cerr << "ERROR: Input graph " << tips.size()
+                     << " populations. Input data has " << current_npops  <<"\n";
+		exit(1);
+	}
+	for (it = allpopnames.begin(); it != allpopnames.end(); it++){
 		if (tips.find(*it) == tips.end() ){
-			cerr << "ERROR: No population "<< *it << " in Newick string\n";
+			cerr << "ERROR: No population "<< *it << " in input graph!\n";
 			exit(1);
 		}
 	}
-	//tree->print();
-	//set_branches_ls();
+
+	// Check that input weights on in edges sum to one
+	viter = vertices(tree->g);
+	for (vi = viter.first; vi != viter.second; ++vi) {
+		if (!tree->g[*vi].is_root) { 
+			totalw = 0;
+			in_eiter = in_edges(*vi, tree->g);
+			for (in_ei = in_eiter.first; in_ei != in_eiter.second; ++in_ei)
+				totalw += tree->g[*in_ei].weight;
+
+			if ((totalw < 0.999) || (totalw > 1.001)) {
+				cerr << "ERROR: Weights in input graph are broken!\n";
+				exit(1);
+			}
+		}
+	}
+
+	// TODO: Check that all vertices are reachable from the root, etc.
+
+	// Section commented out by EKM because
+	//     set_mig_frac function was commented out
+	//     and also mig_frac functions aren't getting used?
+	//igzstream ein2(efile.c_str());
+	//while(getline(ein2, st)) {
+     	//	string buf;
+ 	//	stringstream ss(st);
+ 	//	line.clear();
+ 	//	while (ss>> buf){
+ 	//		line.push_back(buf);
+ 	//	}
+ 	//	sv = i2v[atoi(line[0].c_str())];
+ 	//	tv = i2v[atoi(line[1].c_str())];
+ 	//	mig_frac = atof(line[5].c_str());
+ 	//	e = edge(sv, tv, tree->g).first;	
+ 	//	if (tree->g[e].is_mig) tree->set_mig_frac(e, mig_frac);
+     	//}
+     	//ein2.close();
+
+	gsl_matrix_free(sigma);
+	sigma = gsl_matrix_alloc(current_npops, current_npops);
+	gsl_matrix_set_zero(sigma);
+	gsl_matrix_free(sigma_cor);
+	sigma_cor = gsl_matrix_alloc(current_npops, current_npops);
+	gsl_matrix_set_zero(sigma_cor);
+
+	//if (params->f2) set_branches_ls_f2();
+	//else set_branches_ls();
+	mlno_compute_sigma_cor();  // Change by EKM
+
 	current_llik = llik();
-	cout << "ln(lk): "<< current_llik << "\n";
+}
+
+void GraphState2::set_graph_from_file(string infile){
+	// Define variables
+	struct stat stFileInfo;
+	map<string, Graph::vertex_descriptor> tips;
+	vector<string>::iterator it;
+	vector<string> line;
+	string st, buf;
+	int intStat;
+
+	intStat = stat(infile.c_str(), &stFileInfo);
+	if (intStat != 0) {
+		std::cerr<< "ERROR: cannot open file " << infile << "\n";
+		exit(1);
+	}
+	igzstream in(infile.c_str());
+
+	getline(in, st);
+	current_npops = allpopnames.size();
+
+	gsl_matrix_free(sigma);
+	sigma = gsl_matrix_alloc(current_npops, current_npops);
+	gsl_matrix_set_zero(sigma);
+	gsl_matrix_free(sigma_cor);
+	sigma_cor = gsl_matrix_alloc(current_npops, current_npops);
+	gsl_matrix_set_zero(sigma_cor);
+
+	tree->set_graph(st);
+	tips = tree->get_tips(tree->root);
+
+	if (tips.size()  != current_npops){
+		cerr << "ERROR: Input tree has " << tips.size()
+                     << " populations. Input data has " << current_npops  <<"!\n";
+		exit(1);
+	}
+	for (it = allpopnames.begin(); it != allpopnames.end(); it++){
+		if (tips.find(*it) == tips.end() ){
+			cerr << "ERROR: No population "<< *it << " in input tree!\n";
+			exit(1);
+		}
+	}
+
+	if (params->f2) set_branches_ls_f2();
+	else set_branches_ls();
+	mlno_compute_sigma_cor();  // Change by EKM
+
+	current_llik = llik();
 }
 
 
-
 void GraphState2::set_graph_from_string(string newick){
+	cout << "WARNING: Check function before using!\n";
 	set_graph(newick);
+
 	map<string, Graph::vertex_descriptor> tips = tree->get_tips(tree->root);
 	allpopnames.clear();
+
 	for (map<string, Graph::vertex_descriptor>::iterator it = tips.begin(); it != tips.end(); it++){
 		allpopnames.push_back(it->first);
 		if (countdata->pop2id.find(it->first) == countdata->pop2id.end()){
@@ -350,7 +444,8 @@ void GraphState2::set_graph_from_string(string newick){
 		}
 
 	}
-    current_npops = allpopnames.size();
+
+	current_npops = allpopnames.size();
 	gsl_matrix_free(sigma);
 	sigma = gsl_matrix_alloc(current_npops, current_npops);
 	gsl_matrix_set_zero(sigma);
@@ -363,6 +458,7 @@ void GraphState2::set_graph_from_string(string newick){
 	current_llik = llik();
 	cout << "ln(lk): "<< current_llik << "\n";
 }
+
 
 map<Graph::vertex_descriptor, int> GraphState2::get_v2index(){
 
@@ -1975,7 +2071,6 @@ void GraphState2::set_branches_ls_wmig_estmig(){
 	gsl_matrix_free(cov);
 
 }
-
 
 void GraphState2::set_branches_ls(){
 
@@ -5494,7 +5589,6 @@ void GraphState2::set_branches_ls_f2_precompute_old(){
 	gsl_multifit_linear_free(work);
 	gsl_vector_free(c);
 	gsl_matrix_free(cov);
-
 }
 
 void GraphState2::set_branches_ls_f2_precompute(){
@@ -6357,8 +6451,6 @@ bool GraphState2::mlno_is_labeled_treebased() {
 		exit(1);
 	}
 
-	//cout << "Checking if tree-child\n"; cout.flush();
-
 	// Define variables
 	pair<Graph::in_edge_iterator, Graph::in_edge_iterator> in_eiter;
 	Graph::in_edge_iterator in_ei;
@@ -6368,6 +6460,12 @@ bool GraphState2::mlno_is_labeled_treebased() {
 	Graph::vertex_iterator vi;
 	Graph::vertex_descriptor tv;
 	bool found_tree_node;
+
+	// Check edges incident to the root...
+	out_eiter = out_edges(tree->root, tree->g);
+	for (out_ei = out_eiter.first; out_ei != out_eiter.second; ++out_ei) {
+		if (tree->g[*out_ei].is_mig) return false;
+	}
 
 	viter = vertices(tree->g);
 	for (vi = viter.first; vi != viter.second; ++vi) {
@@ -6894,6 +6992,8 @@ void GraphState2::mlno_fit_graph() {
 	}
 	//cout << "Done final paramerter optimization\n"; mlno_print_graph_w_params();
 
+	current_llik = llik(); // Set log-likelihood
+
 	// IMPORTANT for avoiding segfaults!
 	e2index.clear();
 	e2frac.clear();
@@ -6903,13 +7003,19 @@ void GraphState2::mlno_fit_graph() {
 }
 
 
-double GraphState2::mlno_score_graph() {
+double GraphState2::mlno_find_best_base_tree() {
 	/*
-	 * Fits branch lengths and migration weights to mlno graph
+ 	 * The likelihood of the graph seems to depend on which
+ 	 * edges are selected to be in the base tree and which
+ 	 * edges are selected to be migrations.
+ 	 * 
+ 	 * This implements an exhaustive search for best scoring
+ 	 * base tree -- it should be replaced with something smarter...
 	 *
-	 * This task is complicated by the fact that the likelihood
-	 * of the graph depends on which edges are selected to be
-	 * migration edges.
+	 * Afterward, call
+	 *     mlno_compute_sigma_cor();
+	 *     current_llik = llik();
+	 * to update the graph state!
 	 *
 	 * Added by EKM in January 2021
 	 */
@@ -6927,7 +7033,7 @@ double GraphState2::mlno_score_graph() {
 	pair<Graph::vertex_iterator, Graph::vertex_iterator> viter;
 	Graph::vertex_iterator vi;
 	Graph::vertex_descriptor sv, tv, tmp_sv, tmp_tv;
-	double keep_llik, tmp_llik;
+	double keep_llik;
 	int total;
 	bool is_treebased;
 
@@ -6946,7 +7052,7 @@ double GraphState2::mlno_score_graph() {
 			tree->g[*ei].is_mig = false;
 		}
         }
-	
+
 	// Find migration edges by migration target vertex
 	//cout << "Finding migration edges (i.e. edges incident to migration target)\n";
 	viter = vertices(tree->g);
@@ -7027,10 +7133,9 @@ double GraphState2::mlno_score_graph() {
 		mlno_fit_graph();
 
 		// Compute log-likelihood score
-		tmp_llik = llik();
-		if ((tmp_llik - keep_llik) > mlno_epsilon) {
+		if ((current_llik - keep_llik) > mlno_epsilon) {
 			keep_combo = combo;
-			keep_llik = tmp_llik;
+			keep_llik = current_llik;
 		}
 	}
 
@@ -7051,11 +7156,20 @@ double GraphState2::mlno_score_graph() {
 		}
 	}
 
+	//cout << setprecision(12) << "\nBest base tree has llik of " << keep_llik << "\n";
+
 	return keep_llik;
 }
 
 
-bool GraphState2::mlno_doit() {
+void GraphState2::mlno_mlbt_only_doit() {
+	current_llik = mlno_find_best_base_tree();
+	mlno_compute_sigma_cor();  // Update expected values of statistics (cov or f2)
+	current_llik = llik();     // Compare to observed values 
+}
+
+
+bool GraphState2::mlno_find_best_orientation() {
 	/*
  	 * Run exhaustive search for maximum likelihood network orientation
  	 *
@@ -7078,7 +7192,6 @@ bool GraphState2::mlno_doit() {
 
 	// Refit graph and compute its likelihood
 	mlno_fit_graph();
-	current_llik = llik();
 
 	// Store current graph and its likelihood
 	max_llik = current_llik;
@@ -7121,7 +7234,7 @@ bool GraphState2::mlno_doit() {
 			//cout << "\nReoriented:"; mlno_print_graph();
 
 			// Fit branch lengths and migration weights and compute likelihood
-			tmp_llik = mlno_score_graph();
+			tmp_llik = mlno_find_best_base_tree();
 			//cout << "\nScored:"; mlno_print_graph();
 
 			// Compare log-likelihood score
@@ -7136,10 +7249,17 @@ bool GraphState2::mlno_doit() {
 	}
 
 	tree->copy(tree_maxllik);
-	current_llik = max_llik;
 
-	cout << setprecision(12) << "\nLeaving mlno_doit with llik of " << current_llik << "\n";
+	cout << setprecision(12) << "\nBest orientation has llik of " << current_llik << "\n";
 
+	return is_reoriented;
+}
+
+
+bool GraphState2::mlno_doit() {
+	bool is_reoriented = mlno_find_best_orientation();
+	mlno_compute_sigma_cor();  // Update expected values of statistics (cov or f2)
+	current_llik = llik();     // Compare to observed values 
 	return is_reoriented;
 }
 
@@ -7183,11 +7303,13 @@ bool GraphState2::mlno_reroot_at_outgroup() {
 
 	// Find edge incident to root
 	root_eind = mlno_get_root_eind_to_outgroup();
+
 	if (root_eind.first == tree->g[tree->root].index) {
 		tree->copy(tree_bk);
 		return true;
 	}
 	if (nmig == 0) {
+		cout << "Here 1c\n"; cout.flush();
 		tree->copy(tree_bk);
 		place_root(params->root);
 		return true;
@@ -7212,11 +7334,12 @@ bool GraphState2::mlno_reroot_at_outgroup() {
 	cout << " is valid\n"; cout.flush();
 	//cout << "Reoriented "; mlno_print_graph();
 
-	// Fit branch lengths and migration weights and compute likelihood
-	tmp_llik = mlno_score_graph();
+	// Find best base tree, topology and numerical parameters
+	mlno_mlbt_only_doit(); 
+	//cout << "Best base tree "; mlno_print_graph();
 
-	if ((bk_llik - tmp_llik) > mlno_epsilon) {
-		cout << "WARNING: Re-rooting graph at outgroup changed llik from " << bk_llik << " to" << tmp_llik << "!\n";
+	if ((bk_llik - current_llik) > mlno_epsilon) {
+		cout << "WARNING: Re-rooting graph at outgroup changed llik from " << bk_llik << " to" << current_llik << "!\n";
 	}
 
 	return true;
@@ -7331,8 +7454,185 @@ pair<bool, pair<int, int> > GraphState2::mlno_add_mig_exhaustive() {
 		} else {
 			optimize_weight(e);
 		}
+
+		// Better safe than sorry
+		mlno_compute_sigma_cor();
+		current_llik = llik();
 	}
 
 	return toreturn;
+}
+
+void GraphState2::mlno_compute_sigma_cor() {
+	if (params->f2) mlno_compute_sigma_cor_f2();
+	else mlno_compute_sigma_cor_cov();
+}	
+
+void GraphState2::mlno_compute_sigma_cor_cov() {
+	/*
+	 * Initialize sigma_cor from the current graph so that we can compute the llik()
+	 *
+	 * Use whenever sigma_cor matrix does not match graph, e.g. when graph from input
+	 *
+	 * Added by EKM based on set_branches_ls() function
+         */
+
+	map<Graph::edge_descriptor, int> edge2index;
+	set<Graph::edge_descriptor> root_adj = tree->get_root_adj_edge(); //get the ones next to the root
+	vector<Graph::edge_descriptor> i_nodes2;  //remove the ones next to the root
+
+	int index = 0;
+	map<Graph::edge_descriptor, double> edge2frac;
+	for (Graph::edge_iterator it = edges(tree->g).first; it != edges(tree->g).second; it++){
+		if (root_adj.find(*it) == root_adj.end() && tree->g[*it].is_mig == false) {
+			i_nodes2.push_back( *it );
+			edge2index.insert(make_pair(*it, index));
+			edge2frac.insert(make_pair(*it, 1));
+			index++;
+		}
+	}
+
+	int joint_index = i_nodes2.size(); //the index of the parameter for the sum of the two branch lengths next to the root
+
+	for(set<Graph::edge_descriptor>::iterator it = root_adj.begin(); it != root_adj.end(); it++) {
+		edge2index[*it] = joint_index;
+		edge2frac.insert(make_pair(*it, 0.5));
+	}
+	index++;
+
+	//initialize the workspace
+	int n = (current_npops * (current_npops-1))/2 + current_npops; //n is the total number of entries in the covariance matrix
+	int p = index; // p is the number of branches lengths to be estimated
+
+	//set up the workspace
+	// solve Ax = b  with x >=0
+	// A = weighted branches
+	// x = branch lengths (to be solved)
+	// b = observed f_2 matrix
+
+	double * A = new double[n*p]; //A holds the weights on each branch. In the simplest model, this is 1s and 0s corresponding to whether the branch (weighted by the migration weights)
+	                                         //   is in the path to the root.
+
+	double * b  = new double[n];  // y contains the entries of the empirical covariance matrix
+	double * x = new double[p];   // x will be estimated, contains the fitted branch lengths
+	double rNorm;
+
+	set_branch_coefs_nnls(A, b, n, p, &edge2index, &edge2frac);
+
+	//and put in the solutions in the graph
+	negsum = 0;
+	for( Graph::edge_iterator it = edges(tree->g).first; it != edges(tree->g).second; it++){
+		if (tree->g[*it].is_mig) continue;
+		int i = edge2index[*it];
+		double frac = edge2frac[*it];
+		//double l = x[i];
+		//tree->g[*it].len = l*frac;
+		x[i] = tree->g[*it].len / frac;
+	}
+
+	//and the corrected covariance matrix
+	index = 0;
+	for (int i = 0; i < current_npops; i++){
+		for (int j = i; j < current_npops; j++){
+			double pred = 0;
+			for (int k = 0; k < p; k++) {
+				pred += A[ k * n + index ] * x[k];
+			}
+			//cout << i << " " << j << " "<< pred << "\n";
+			gsl_matrix_set(sigma_cor, i, j, pred);
+			gsl_matrix_set(sigma_cor, j, i, pred);
+			index++;
+		}
+
+	}
+
+	//free memory
+	delete [] A;
+	delete [] b;
+	delete [] x;
+}
+
+void GraphState2::mlno_compute_sigma_cor_f2() {
+	/*
+	 * Initialize sigma_cor from the current graph so that we can compute the llik()
+	 *
+	 * Use whenever sigma_cor matrix does not match graph, e.g. when graph from input
+	 *
+	 * Added by EKM based on set_branches_ls_f2() function
+         */
+
+	map<Graph::edge_descriptor, int> edge2index;
+	set<Graph::edge_descriptor> root_adj = tree->get_root_adj_edge(); //get the ones next to the root
+	vector<Graph::edge_descriptor> i_nodes2;  //remove the ones next to the root
+
+	int index = 0;
+	map<Graph::edge_descriptor, double> edge2frac;
+	for (Graph::edge_iterator it = edges(tree->g).first; it != edges(tree->g).second; it++){
+		if (root_adj.find(*it) == root_adj.end() && tree->g[*it].is_mig == false) {
+			i_nodes2.push_back( *it );
+			edge2index.insert(make_pair(*it, index));
+			edge2frac.insert(make_pair(*it, 1));
+			index++;
+		}
+	}
+
+	int joint_index = i_nodes2.size(); //the index of the parameter for the sum of the two branch lengths next to the root
+
+	for(set<Graph::edge_descriptor>::iterator it = root_adj.begin(); it != root_adj.end(); it++) {
+		edge2index[*it] = joint_index;
+		edge2frac.insert(make_pair(*it, 0.5));
+	}
+	index++;
+
+	//initialize the workspace
+	int n = (current_npops * (current_npops-1))/2; //n is the total number of entries in the covariance matrix
+	int p = index; // p is the number of branches lengths to be estimated
+
+	//set up the workspace
+	// solve Ax = b  with x >=0
+	// A = weighted branches
+	// x = branch lengths (to be solved)
+	// b = observed f_2 matrix
+
+	double * A = new double[n*p]; //A holds the weights on each branch. In the simplest model, this is 1s and 0s corresponding to whether the branch (weighted by the migration weights)
+	                                         //   is in the path to the root.
+
+	double * b  = new double[n];  // y contains the entries of the empirical covariance matrix
+	double * x = new double[p];   // x will be estimated, contains the fitted branch lengths
+	double rNorm;
+
+	set_branch_coefs_f2_nnls(A, b, n, p, &edge2index, &edge2frac);
+
+	//and put in the solutions in the graph
+	negsum = 0;
+	for( Graph::edge_iterator it = edges(tree->g).first; it != edges(tree->g).second; it++){
+		if (tree->g[*it].is_mig) continue;
+		int i = edge2index[*it];
+		double frac = edge2frac[*it];
+		//double l = x[i];
+		//tree->g[*it].len = l*frac;
+		x[i] = tree->g[*it].len / frac;
+		//if (tree->g[source(*it, tree->g)].is_mig  && tree->g[target(*it, tree->g)].is_mig ) continue;
+	}
+
+	//and the corrected covariance matrix
+	index = 0;
+	for (int i = 0; i < current_npops; i++){
+		for (int j = i+1; j < current_npops; j++){
+			double pred = 0;
+			for (int k = 0; k < p; k++) {
+				pred += A[ k * n + index ] * x[k];
+			}
+			gsl_matrix_set(sigma_cor, i, j, pred);
+			gsl_matrix_set(sigma_cor, j, i, pred);
+			index++;
+		}
+
+	}
+
+	// free memory
+	delete [] A;
+	delete [] b;
+	delete [] x;
 }
 // End of functions added by EKM

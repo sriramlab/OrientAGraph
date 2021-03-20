@@ -129,7 +129,7 @@ int main(int argc, char *argv[]){
 	state.set_graph_from_file(p.treefile);
 	cout << "Read input tree " << state.tree->get_newick_format() << "\n";
     } else if (p.read_graph){
-    	state.set_graph(p.vfile, p.efile);
+    	state.set_graph_from_file(p.vfile, p.efile);
     	cout << "Read graph with base tree " << state.tree->get_newick_format() << "\n";
     }
 
@@ -138,10 +138,9 @@ int main(int argc, char *argv[]){
         cout << "Scoring input tree or graph\n";
 
         if (p.score == 2) state.mlno_fit_graph();
-        else if (p.score == 3) state.mlno_score_graph();
+        else if (p.score == 3) state.mlno_mlbt_only_doit();
         else if (p.score == 4) state.mlno_doit();
 
-        state.current_llik = state.llik();
         cout << "ln(likelihood): " << state.current_llik << "\n";
         likout << setprecision(12) << "Input ln(likelihood) "
                << state.llik() << " with " 
