@@ -13,36 +13,87 @@
 string infile;
 string outstem = "TreeMix";
 
-void printv(){
-	cout << "\nTreeMix v. 1.13\n";
-	cout << "$Revision: 231 $\n\n";
+void printv() {
+    cout << "OrientAGraph 1.0\n\n"
+         << "OrientAGraph is built from TreeMix v1.13 Revision 231 by\n"
+         << "J.K. Pickrell and J.K. Pritchard and implements several new\n"
+         << "features, including Maximum Likelihood Network Orientation\n"
+         << "(MLNO), which can be used as a graph search heuristic.\n\n"
+         << "Contact: Erin Molloy (ekmolloy@cs.ucla.edu)\n\n";
 }
-void printopts(){
-    cout << "Options:\n";
-    cout << "-h display this help\n";
-    cout << "-i [file name] input file\n";
-    cout << "-o [stem] output stem (will be [stem].treeout.gz, [stem].cov.gz, [stem].modelcov.gz)\n";
-    cout << "-k [int] number of SNPs per block for estimation of covariance matrix (1)\n";
+
+void printopts() {
+    cout << "TreeMix Options:\n";
+    cout << "-h Display this help\n";
+    cout << "-i [file] Input file (e.g. containing allele frequencies)\n";
+    cout << "-o [stem] Output prefix (i.e. output will be [stem].treeout.gz,\n"
+         << "    [stem].cov.gz, [stem].modelcov.gz, etc.)\n";
+    cout << "-k [int] Number of SNPs per block for estimation of covariance matrix (1)\n";
     cout << "-global Do a round of global rearrangements after adding all populations\n";
-    cout << "-tf [file name] Read the tree topology from a file, rather than estimating it\n";
-    cout << "-m [int] number of migration edges to add (0)\n";
-    cout << "-root [string] comma-delimited list of populations to set on one side of the root (for migration)\n";
-    cout << "-g [vertices file name] [edges file name] read the graph from a previous TreeMix run\n";
+    cout << "-tf [newick file] Read tree from a file, rather than estimating it\n";
+    cout << "-m [int] Number of migration edges to add (default: 0)\n";
+    cout << "-root [string] Comma-delimited list of populations to put on one side of root\n";
+    cout << "-gf [vertices file] [edges file] Read graph from files (e.g. [stem].vertices.gz\n"
+         << "    and [stem].edges.gz from a previous TreeMix run)\n";
     cout << "-se Calculate standard errors of migration weights (computationally expensive)\n";
-    cout << "-micro microsatellite data\n";
+    cout << "-micro Input is microsatellite data\n";
     cout << "-bootstrap Perform a single bootstrap replicate\n";
-    cout << "-cor_mig [file] list of known migration events to include (also use -climb)\n";
+    cout << "-cor_mig [file] List of known migration events to include (also use -climb)\n";
     cout << "-noss Turn off sample size correction\n";
     cout << "-seed [int] Set the seed for random number generation\n";
     cout << "-n_warn [int] Display first N warnings\n"; 
-
+    // Start of additions by EKM
+    cout << "\nOptions added for OrientAGraph:\n";
+    cout << "-freq2stat Estimate covariances or f2-statistics from allele frequencies\n"
+         << "    and then exit;\n"
+         << "    the resulting files can be given as input using the -givenmat option\n";
+    cout << "-givenmat [matrix file] Allows user to input matrix (e.g. [stem].cov.gz)\n"
+         << "    with the -i flag, the file after this flag should contain the standard\n"
+         << "    error (e.g. [stem].covse.gz)\n";
+    cout << "-refit Refit model parameters on starting tree (-tf) or graph (-gf)\n";
+    cout << "-score [string] Score input tree (-tf) or graph (-gf) and then exit:\n"
+         << "    'asis' = score 'as is' i.e. without refitting,\n"
+         << "    'rfit' = score after refitting (default),\n"
+         << "    'mlbt' = score each base tree (with refitting) and return best,\n"
+         << "    'mlno' = score each network orientation (with refitting) and return best\n";
+    cout << "-mlno [string] Comma-delimited list of integers, indicating when to run\n"
+         << "    maximum likelihood network orientation (MLNO) as part of heuristic search\n"
+         << "    (e.g. '1,2' means run MLNO only after adding the first two migration edges\n"
+         << "    and no string means run MLNO after adding each migration edge)\n";
+    cout << "-allmigs [string] Comma-delimited list of integers, indicating when to run\n"
+         << "    evaluate all legal ways of adding migration edge to base tree instead of\n"
+         << "    using heuristic\n";
+    cout << "-popaddorder [population list file] Order to add populations when building\n"
+         << "    starting tree\n";
+    // End of additions by EKM
     cout << "\n";
 }
 
 
+void process_list_of_ints(string listofints, set<int> &amigs, int nmigs) {
+    if (listofints.empty()) {
+        for (int i = 0; i < nmigs; i++) {
+            amigs.insert(i + 1);
+        }
+    } else {
+        istringstream ss(listofints);
+        string word;
+        while(getline(ss, word, ','))
+            amigs.insert(atoi(word.c_str()));
+    }
+}
+
 
 int main(int argc, char *argv[]){
     printv();
+
+    // Start of addition by EKM
+    cout << "COMMAND: ";
+    for (int i = 0; i < argc; i++) {
+        printf(" %s", argv[i]);
+    }
+    cout << "\n\n";
+    // End of addition by EKM
 
     CCmdLine cmdline;
     PhyloPop_params p;
@@ -64,10 +115,10 @@ int main(int argc, char *argv[]){
     	p.treefile = cmdline.GetArgument("-tf", 0).c_str();
     	p.readtree = true;
     }
-    if (cmdline.HasSwitch("-g"))	{
-      	p.vfile = cmdline.GetArgument("-g", 0);
-      	p.efile = cmdline.GetArgument("-g", 1);
-      	p.read_graph = true;
+    if (cmdline.HasSwitch("-gf"))	{
+      	p.vfile = cmdline.GetArgument("-gf", 0);
+      	p.efile = cmdline.GetArgument("-gf", 1);
+      	p.readgraph = true;
     }
     if (cmdline.HasSwitch("-noss")) p.sample_size_correct = false;
     if (cmdline.HasSwitch("-printhzy")) p.print_hzy = true;
@@ -134,7 +185,6 @@ int main(int argc, char *argv[]){
     	p.f2_mixdist = atof(cmdline.GetArgument("-f2_cor", 2).c_str());
     }
     if (cmdline.HasSwitch("-cor_mig")){
-    	//cout << "Here\n";
      	p.cor_mig = true;
      	//p.corpop = cmdline.GetArgument("-cor_mig", 0);
      	p.read_migfracs(cmdline.GetArgument("-cor_mig", 0) );
@@ -146,7 +196,40 @@ int main(int argc, char *argv[]){
 
     if (cmdline.HasSwitch("-n_warn")) p.num_warnings = atoi(cmdline.GetArgument("-n_warn", 0).c_str());
 
-    //random number generator
+    // Start of parameters added by EKM
+    if (cmdline.HasSwitch("-freq2stat")) {
+        p.freq2stat = true;
+    }
+    if (cmdline.HasSwitch("-givenmat")) {
+        p.givenmat = true;
+        p.matfile = cmdline.GetArgument("-givenmat", 0);
+    }
+    if (cmdline.HasSwitch("-refit")) {
+        p.refit = true;
+    }
+    if (cmdline.HasSwitch("-score")) {
+        p.doscore = true;
+        string smthd = cmdline.GetArgument("-score", 0).c_str();
+        if (!smthd.empty()) p.scoremethod = smthd;
+    }
+    if (cmdline.HasSwitch("-mlno")) {
+        string listofints = cmdline.GetArgument("-mlno", 0);
+        process_list_of_ints(listofints, p.domlno, p.nmig);
+    }
+    if (cmdline.HasSwitch("-allmigs")) {
+        string listofints = cmdline.GetArgument("-allmigs", 0);
+        cout << "listofints = " << listofints << "\n";
+        process_list_of_ints(listofints, p.tryallmigsbt, p.nmig);
+    }
+    if (cmdline.HasSwitch("-popaddorder")) {
+        p.givenpopaddorder = true;
+        p.popaddorderfile = cmdline.GetArgument("-popaddorder", 0);
+    }
+    // End of parameters added by EKM
+
+    cout.precision(8);
+
+    // Set-up random number generator
     const gsl_rng_type * T;
     gsl_rng * r;
     gsl_rng_env_setup();
@@ -155,36 +238,87 @@ int main(int argc, char *argv[]){
     int seed = (int) time(0);
     gsl_rng_set(r, p.seed);
 
-    string treefile = outstem+".treeout.gz";
-    string covfile = outstem+".cov.gz";
-    string modelcovfile = outstem+".modelcov.gz";
-    string cov_sefile = outstem+".covse.gz";
-    string llikfile = outstem+".llik";
-    ofstream likout(llikfile.c_str());
+    // Output files
+    string covfile = outstem + ".cov.gz";
+    string modelcovfile = outstem + ".modelcov.gz";
+    string cov_sefile = outstem + ".covse.gz";
+    string llikfile = outstem + ".llik";
 
-    //p.bias_correct = false;
-    ogzstream treeout(treefile.c_str());
+    // Read input data
     CountData counts(infile, &p);
     if (p.bootstrap) counts.set_cov_bootstrap(r);
     if (p.cov_snp) counts.set_cov_singlesnp(p.which_cov_snp);
     counts.print_cov(covfile);
     counts.print_cov_var(cov_sefile);
-    //counts.print_cov_samp("test.gz");
+    if (p.freq2stat) return 0;
+
+    ofstream likout(llikfile.c_str());
+
     if (p.smooth_lik) p.smooth_scale = 1; //sqrt( (double) counts.nsnp / (double) p.window_size);
     GraphState2 state(&counts, &p);
 
-    cout.precision(8);
     if (p.readtree) state.set_graph_from_file(p.treefile);
-    else if (p.read_graph){
-    	state.set_graph(p.vfile, p.efile);
-    	cout << "Set tree to: "<< state.tree->get_newick_format() << "\n";
-    	//while (state.current_llik <= -DBL_MAX){
-    	//	cout << "RESCALING\n"; cout.flush();
+    else if (p.readgraph) {
+    	state.set_graph_from_file(p.vfile, p.efile);
+    	//while (state.current_llik <= -DBL_MAX) {
     	//	p.smooth_scale = p.smooth_scale *2;
     	//	state.current_llik = state.llik();
     	//}
-    	cout << "ln(lk) = " << state.current_llik << " \n";
     }
+
+    // Start of addition by EKM - Score input graph and exit
+    if (p.doscore) {
+        if (p.scoremethod.compare("asis") == 0) {
+            cout << "Scoring input tree or graph\n";
+
+            state.print_sigma_cor(modelcovfile);
+
+            likout << setprecision(12) << "Input ln(likelihood) "
+                   << state.llik() << " with "
+                   << state.get_nmig() << " migration events\n";
+            likout.close();
+
+            cout << "Final Admixture"; state.mlno_print_graph_w_params();
+            cout << "Log-likelihood = " << state.current_llik << "\n";
+            cout << "DONE.\n";
+
+            return 0;
+        } if (p.scoremethod.compare("rfit") == 0) {
+            cout << "Refitting parameters and scoring input graph\n";
+            state.mlno_fit_graph();
+        } else if (p.scoremethod.compare("mlbt") == 0) {
+            cout << "Finding ML base tree for input graph\n";
+            state.mlno_fit_graph_mlbt();
+        } else if (p.scoremethod.compare("mlno") == 0) {
+            cout << "Finding MLNO for input graph\n";
+            state.mlno_fit_graph_mlno();
+        } else {
+            cerr << "ERROR: Invalid string given for -score option!\n";
+            exit(1);
+        }
+
+        state.print_treeout(outstem);
+
+        if (p.sample_size_correct == true) {
+            map<Graph::edge_descriptor, double> maxw = state.get_edge_maxw();
+            state.tree->print(outstem, maxw);
+        } else state.print_trimmed(outstem);
+
+        state.print_sigma_cor(modelcovfile);
+
+        likout << setprecision(12) << "Input ln(likelihood) "
+               << state.llik() << " with "
+               << state.get_nmig() << " migration events\n";
+        likout.close();
+
+        cout << "Final Admixture"; state.mlno_print_graph_w_params();
+        cout << "Log-likelihood = " << state.current_llik << "\n";
+        cout << "DONE.\n";
+        return 0;
+    }
+
+    if (p.refit) state.mlno_fit_graph();
+    // End of addition by EKM
 
     // add all populations
     while (!p.readtree && counts.npop > state.current_npops){
@@ -224,19 +358,34 @@ int main(int argc, char *argv[]){
        	}
     	double current_nsum = state.negsum;
     	pair<bool, pair<int, int> > add;
-    	if (p.f2) add = state.add_mig_targeted_f2();
-    	else add = state.add_mig_targeted();
-    	//cout << "here\n"; cout.flush();
-    	if (add.first == true) {
-    		cout << "Migration added\n";
-    		state.iterate_mig_hillclimb_and_optimweight(add.second, current_nsum);
+
+        if (p.tryallmigsbt.find(i + 1) != p.tryallmigsbt.end()) {
+            // Start of addition by EKM
+            cout << "Performing exhaustive search to add migration edge to base tree\n";
+            add = state.mlno_add_mig_to_base_tree_exhaustive();
+            // End of addition by EKM
+        } else {
+            cout << "Performing targeted search to add migration edge to base tree\n";
+            if (p.f2) add = state.add_mig_targeted_f2();
+            else add = state.add_mig_targeted();
+        }
+
+        if (add.first == true) {
+            cout << "Migration edge #" << i + 1 << " added\n";  // Added by EKM
+            state.iterate_mig_hillclimb_and_optimweight(add.second, current_nsum);
+            // Start of addition by EKM
+            if (p.domlno.find(i + 1) != p.domlno.end()) {
+                cout << "Performing exhaustive search for MLNO\n";
+                bool is_reoriented = state.mlno_fit_graph_mlno();
+            }
+            // End of addition by EKM
     	}
+
     	state.optimize_weights();
     	if (p.f2) state.set_branches_ls_f2();
     	else state.set_branches_ls();
         state.flip_mig();
     	cout << "ln(likelihood):" << state.llik() << " \n";
-
     }
     if (p.end_mig) state.optimize_weights();
     if (p.forcemig) {
@@ -249,56 +398,25 @@ int main(int argc, char *argv[]){
     }
     if (!p.cor_mig && !p.flip && p.nmig > 0) state.flip_mig();
     if (p.flip) state.flip_mig(p.flipstring);
-    treeout << state.tree->get_newick_format() << "\n";
-    if (p.sample_size_correct == false) treeout << state.get_trimmed_newick() << "\n";
-    pair<Graph::edge_iterator, Graph::edge_iterator> eds = edges(state.tree->g);
-    Graph::edge_iterator it = eds.first;
-    p.smooth_lik = false;
-    while (it != eds.second){
-    	if ( state.tree->g[*it].is_mig){
-     		double w = state.tree->g[*it].weight;
 
-     		treeout << state.tree->g[*it].weight<< " ";
-     		if (p.calc_se){
-        		Graph::vertex_descriptor p1 = source( *it, state.tree->g);
-         		p1 = state.tree->get_child_node_mig(p1);
-         		Graph::vertex_descriptor p2 = target(*it, state.tree->g);
-     			cout << state.tree->get_newick_format(p1) << " ";
-     			cout << state.tree->get_newick_format(p2) << "\n"; cout.flush();
-     			p.neg_penalty = 0;
-     			pair<double, double> se = state.calculate_se(*it);
-     			treeout << se.first << " "<< se.second << " ";
-     			double test = se.first/ se.second;
-     			double pval = 1-gsl_cdf_gaussian_P(test, 1);
-     			if (pval < DBL_MIN){
-     				pval = DBL_MIN;
-     				treeout << "<"<< pval << " ";
-     			}
-     			else{
-     				treeout << pval << " ";
-     			}
-     		}
-     		else treeout << "NA NA NA ";
+    if (p.set_root) state.mlno_reroot_at_outgroup();  // Added by EKM
 
-     		state.tree->g[*it].weight = w;
-     		if (p.f2) state.set_branches_ls_f2();
-     		else state.set_branches_ls();
+    state.print_treeout(outstem);  // Change by EKM
 
-     		Graph::vertex_descriptor p1 = source( *it, state.tree->g);
-     		p1 = state.tree->get_child_node_mig(p1);
-     		Graph::vertex_descriptor p2 = target(*it, state.tree->g);
-     		treeout << state.tree->get_newick_format(p1) << " ";
-     		treeout << state.tree->get_newick_format(p2) << "\n";
-    	}
-		it++;
-    }
-    map<Graph::edge_descriptor, double> maxw = state.get_edge_maxw();
-    if (p.sample_size_correct == true) state.tree->print(outstem, maxw);
-    else state.print_trimmed(outstem);
+    if (p.sample_size_correct == true) {
+        map<Graph::edge_descriptor, double> maxw = state.get_edge_maxw();
+        state.tree->print(outstem, maxw);
+    } else state.print_trimmed(outstem);
+
     state.print_sigma_cor(modelcovfile);
 
     //print the likelihood and number of migration events begin exiting
-    likout << "Exiting ln(likelihood) with "<< state.get_nmig() <<" migration events: "<< state.llik() << " \n";
+    likout << "Exiting ln(likelihood) with " << state.get_nmig()
+           << " migration events: " << state.llik() << "\n";
+    likout.close();
+
+    cout << "Final Admixture"; state.mlno_print_graph_w_params();
+    cout << "Log-likelihood = " << state.current_llik << "\n";
     cout << "DONE.\n";
-	return 0;
+    return 0;
 }

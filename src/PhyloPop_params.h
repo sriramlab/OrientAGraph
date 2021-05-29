@@ -32,7 +32,7 @@ public:
 	string root;
 
 	// read from previous run
-	bool read_graph;
+	bool readgraph;
 	string vfile;
 	string efile;
 
@@ -113,6 +113,19 @@ public:
 
 	// warning suppression - define number of warnings to show (-1 indicates show all)
 	int num_warnings;
+
+	// Start of parameters added by EKM
+	bool freq2stat;
+	bool givenmat;
+	string matfile;
+	bool refit;
+	bool doscore;
+	string scoremethod;
+	set<int> domlno;
+	set<int> tryallmigsbt;
+	bool givenpopaddorder;
+	string popaddorderfile;
+	// End of parameters added by EKM
 };
 
 #endif /* PHYLOPOP_PARAMS_H_ */

@@ -16,6 +16,7 @@ PopGraph::PopGraph(){
 	const int num_edges = sizeof(edge_array)/sizeof(edge_array[0]);
 	g = Graph(num_vertices);
 	//for (int i = 0; i < num_edges; ++i) add_edge(edge_array[i].first, edge_array[i].second, g);
+	isbinary = false;  // Added by EKM
 }
 
 
@@ -23,6 +24,7 @@ PopGraph::PopGraph(vector<string> first3pops){
 
 	g = Graph(1);
 	istree = true;
+	isbinary = false;  // Added by EKM
 	Graph::vertex_descriptor v = *vertices(g).first;
 	Graph::vertex_descriptor v2, v3, v4, v5, v6;
 	Graph::edge_descriptor e;
@@ -275,7 +277,7 @@ Graph::edge_descriptor PopGraph::add_mig_edge(Graph::vertex_descriptor st, Graph
 	else g[e].len = oldlen/2;
 
 	e = add_edge(p2, sp, g).first;
-	g[e].weight = 0.1;
+	g[e].weight = 0.1;  // Note from EKM - also tested 0.05
 	g[e].len = 0;
 	g[e].is_mig = true;
 
@@ -441,8 +443,9 @@ void PopGraph::remove_tip(Graph::vertex_descriptor v){
 
 void PopGraph::copy(PopGraph * s){
 	istree = s->istree;
+	isbinary = s->isbinary;  // Added by EKM
 	popnames = s->popnames;
-
+	indexcounter = s->indexcounter;  // Added by EKM
 
 	//cout << "copying graph\n"; cout.flush();
 	g.clear();
@@ -460,6 +463,8 @@ void PopGraph::copy(PopGraph * s){
 		g[vd].is_tip = s->g[*it].is_tip;
 		g[vd].is_mig = s->g[*it].is_mig;
 		g[vd].mig_frac = s->g[*it].mig_frac;
+		g[vd].desired_indegree = s->g[*it].desired_indegree;  // Added by EKM
+		g[vd].current_indegree = s->g[*it].current_indegree;  // Added by EKM
 		tmpmap.insert(make_pair( g[vd].index, vd));
 		if (s->g[*it].is_root == true) root = vd;
 	}
@@ -471,6 +476,8 @@ void PopGraph::copy(PopGraph * s){
 		g[ed].weight = s->g[*it].weight;
 		g[ed].len = s->g[*it].len;
 		g[ed].is_mig = s->g[*it].is_mig;
+		g[ed].is_oriented = s->g[*it].is_oriented;  // Added by EKM
+		g[ed].is_labeled = s->g[*it].is_labeled;    // Added by EKM
 	}
 }
 

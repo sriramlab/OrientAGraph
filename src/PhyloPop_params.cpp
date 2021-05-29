@@ -24,7 +24,7 @@ PhyloPop_params::PhyloPop_params(){
 	maxit2 = 20;
 	set_root = false;
 	root = "NA";
-	read_graph = false;
+	readgraph = false;
 	vfile = "NA";
 	efile = "NA";
 	quick = false;
@@ -61,6 +61,17 @@ PhyloPop_params::PhyloPop_params(){
 	print_hzy = false;
 	seed = 0;
 	num_warnings = -1; // warning suppression - number of warnings to show (-1 indicates show all)
+
+	// Start of parameters added by EKM
+	freq2stat = false;
+	givenmat = false;
+	matfile = "NA";
+	refit = false;
+	doscore = false;
+	scoremethod = "rfit";
+	givenpopaddorder = false;
+	popaddorderfile = "NA";
+	// End of parameters added by EKM
 }
 
 void PhyloPop_params::read_migfracs(string infile){

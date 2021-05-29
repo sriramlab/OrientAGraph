@@ -10,6 +10,14 @@
 
 CountData::CountData(string infile, PhyloPop_params* p){
 	params = p;
+
+	// Start of addition by EKM
+	if (p->givenmat) {
+		read_matrix(infile);
+		return;
+	}
+	// End of addition by EKM
+
 	if (p->micro) {
 		read_micro_data(infile);
 		//cout << "read\n"; cout.flush();
@@ -50,6 +58,118 @@ CountData::CountData(string infile, PhyloPop_params* p){
 	//cout << "Effective number of SNPs: "<< ne << "\n";
 	//process_cov();
 }
+
+
+// Start of functions added by EKM
+void CountData::read_matrix(string infile) {
+	/*
+ 	 * Allows user to give matrix as input instead of allele frequencies.
+ 	 *
+ 	 * Added by EKM in January 2021
+	 */
+
+	// Define variables
+	struct stat stFileInfo;
+        map<int, string> tmp_id2pop;
+	string line, word, ext;
+	int r, c, i, j, tmp_npop, intStat;
+
+	// Read sample covariance matrix OR f2-statistics matrix from file
+	intStat = stat(infile.c_str(), &stFileInfo);
+	if (intStat !=0){
+		std::cerr<< "ERROR: cannot open file " << infile << "\n";
+		exit(1);
+	}
+	ext = infile.substr(infile.size() - 3, 3);
+	if (ext != ".gz") {
+		cout << "WARNING: " << infile 
+		     << " does not end in .gz may have trouble reading!\n";
+	}
+	igzstream in(infile.c_str());
+
+	// Process population names in first row of file
+	npop = 0;
+	getline(in, line);
+	stringstream linestream(line);
+	while (getline(linestream, word, ' ')) {
+		pop2id.insert(pair<string, int>(word, npop));
+		id2pop.insert(pair<int, string>(npop, word));
+		npop += 1;
+	}
+
+	// Set-up 
+	cov = gsl_matrix_alloc(npop, npop);
+	cov_var = gsl_matrix_alloc(npop, npop);
+
+	// Process matrix
+	r = 0;
+	while (getline(in, line)) {
+		stringstream linestream(line);
+		c = 0;
+		while(getline(linestream, word, ' ')) {
+			if (c == 0) {
+				i = pop2id[word];
+			} else {
+				j = c - 1;
+				gsl_matrix_set(cov, i, j, atof(word.c_str()));
+				gsl_matrix_set(cov_var, i, j, 0);
+			}
+			c++;
+		}
+		r++;
+	}
+
+	// Clean up
+	in.close();
+
+	// Read standard error for sample covariance matrix OR f2-statistics matrix from file
+	intStat = stat(params->matfile.c_str(), &stFileInfo);
+	if (intStat !=0){
+		std::cerr<< "ERROR: cannot open file " << params->matfile << "\n";
+		exit(1);
+	}
+	ext = params->matfile.substr(params->matfile.size() - 3, 3);
+	if (ext != ".gz") {
+		cout << "WARNING: " << params->matfile 
+		     << " does not end in .gz may have trouble reading!\n";
+	}
+	igzstream inse(params->matfile.c_str());
+
+	// Process population names in first row of file 
+	tmp_npop = 0;
+	getline(inse, line);
+	stringstream tmp_linestream(line);
+	while (getline(tmp_linestream, word, ' ')) {
+		tmp_id2pop.insert(pair<int, string>(tmp_npop, word));
+		tmp_npop += 1;
+	}
+
+	if (npop != tmp_npop) {
+		cout << "ERROR: Number of populations is not the same in the input matrices!\n";
+		exit(1);
+	}
+
+	// Process matrix
+	r = 0;
+	while (getline(inse, line)) {
+		stringstream tmp_linestream(line);
+		c = 0;
+		while(getline(tmp_linestream, word, ' ')) {
+			if (c == 0) {
+				i = pop2id[word];
+			} else {
+				j = pop2id[tmp_id2pop[c - 1]];
+				gsl_matrix_set(cov_var, i, j, atof(word.c_str()));
+			}
+			c++;
+		}
+		r++;
+	}
+
+	// Clean up
+	inse.close();
+}
+// End of functions added by EKM
 
 
 CountData::CountData(string infile){

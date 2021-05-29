@@ -12,10 +12,12 @@
 
 struct Node
 {
-	int index;
 	string name;
 	double height;
 	float mig_frac;
+	int index;
+	int desired_indegree;  // Added by EKM
+	int current_indegree;  // Added by EKM
 	bool is_tip;
 	bool is_root;
 	bool is_mig;
@@ -26,6 +28,8 @@ struct Dist
 {
 	float weight;
 	float len;
+	bool is_oriented;      // Added by EKM
+	bool is_labeled;       // Added by EKM
 	bool is_mig;
 };
 
@@ -55,6 +59,7 @@ public:
 
 	Graph g;
 	bool istree; // is this a tree? if so, allow shortcuts
+	bool isbinary;  // Added by EKM
 	int indexcounter;
 
 	vector<Graph::vertex_descriptor> index2father;
