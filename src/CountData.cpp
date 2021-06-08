@@ -13,7 +13,7 @@ CountData::CountData(string infile, PhyloPop_params* p){
 
 	// Start of addition by EKM
 	if (p->givenmat) {
-                read_matrix(infile);
+		read_matrix(infile);
 		return;
 	}
 	// End of addition by EKM
@@ -58,6 +58,151 @@ CountData::CountData(string infile, PhyloPop_params* p){
 	//cout << "Effective number of SNPs: "<< ne << "\n";
 	//process_cov();
 }
+
+
+// Start of functions added by EKM
+void CountData::read_matrix(string infile) {
+    /*
+     * Allows user to give matrix as input instead of allele frequencies.
+     *
+     * Added by EKM in January 2021
+     */
+
+    // Define variables
+    struct stat stFileInfo;
+    map<int, string> tmp_id2pop;
+    string line, word, ext;
+    int r, c, i, j, tmp_npop, intStat, back;
+
+    // Read sample covariance matrix OR f2-statistics matrix from file
+    intStat = stat(infile.c_str(), &stFileInfo);
+    if (intStat != 0) {
+        std::cerr<< "ERROR: cannot open file " << infile << "\n";
+        exit(1);
+    }
+    ext = infile.substr(infile.size() - 3, 3);
+    if (ext != ".gz") {
+        cout << "WARNING: " << infile 
+             << " does not end in .gz may have trouble reading!\n";
+    }
+    igzstream in(infile.c_str());
+
+    // Process population names in first row of file
+    getline(in, line);
+    back = line.size() - 1;
+    if (line[back] == '\r') line.erase(back);  // Windows
+    stringstream linestream(line);
+
+    npop = 0;
+    while (getline(linestream, word, ' ')) {
+        pop2id.insert(pair<string, int>(word, npop));
+        id2pop.insert(pair<int, string>(npop, word));
+        npop += 1;
+    }
+
+    // Set-up 
+    cov = gsl_matrix_alloc(npop, npop);
+    cov_var = gsl_matrix_alloc(npop, npop);
+
+    // Process matrix
+    r = 0;
+    while (getline(in, line)) {
+        back = line.size() - 1;
+        if (line[back] == '\r') line.erase(back);  // Windows
+        stringstream linestream(line);
+
+        c = 0;
+        while(getline(linestream, word, ' ')) {
+            if (c == 0) {
+                i = pop2id[word];
+            } else {
+                j = c - 1;
+                gsl_matrix_set(cov, i, j, atof(word.c_str()));
+                gsl_matrix_set(cov_var, i, j, 0);
+            }
+            c++;
+        }
+        r++;
+    }
+
+    // Clean up
+    in.close();
+
+    // Read standard error for sample covariance matrix OR f2-statistics matrix from file
+    intStat = stat(params->matfile.c_str(), &stFileInfo);
+    if (intStat != 0) {
+        std::cerr << "ERROR: cannot open file " << params->matfile << "\n"
+                  << "       setting se to 0.0001 by default.\n";
+
+        for (i = 0; i < npop; i++) {
+            for (j = 0; j < npop; j++) {
+                gsl_matrix_set(cov_var, i, j, 0.0001);
+            }
+        }
+
+        if (params->f2) {
+            for (i = 0; i < npop; i++) {
+                gsl_matrix_set(cov_var, i, i, 0.0);
+            }
+        }
+
+        return;
+    }
+    ext = params->matfile.substr(params->matfile.size() - 3, 3);
+    if (ext != ".gz") {
+        cout << "WARNING: " << params->matfile 
+             << " does not end in .gz may have trouble reading!\n";
+    }
+    igzstream inse(params->matfile.c_str());
+
+    // Process population names in first row of file 
+    getline(inse, line);
+    back = line.size() - 1;
+    if (line[back] == '\r') line.erase(back);  // Windows
+    stringstream tmp_linestream(line);
+
+    tmp_npop = 0;
+    while (getline(tmp_linestream, word, ' ')) {
+        tmp_id2pop.insert(pair<int, string>(tmp_npop, word));
+        tmp_npop += 1;
+    }
+
+    if (npop != tmp_npop) {
+        cout << "ERROR: Number of populations is not the same in the input matrices!\n";
+        exit(1);
+    }
+
+    for (i = 0; i < npop; i++) {
+        if (id2pop[i] != tmp_id2pop[i]) {
+            cerr << "ERROR: Input matrices are not on the same set of populations\n";
+            exit(1);
+        }
+    }
+
+    // Process matrix
+    r = 0;
+    while (getline(inse, line)) {
+        back = line.size() - 1;
+        if (line[back] == '\r') line.erase(back);  // Windows
+        stringstream tmp_linestream(line);
+
+        c = 0;
+        while(getline(tmp_linestream, word, ' ')) {
+            if (c == 0) {
+                i = pop2id[word];
+            } else {
+                j = pop2id[tmp_id2pop[c - 1]];
+                gsl_matrix_set(cov_var, i, j, atof(word.c_str()));
+            }
+            c++;
+        }
+        r++;
+    }
+
+    // Clean up
+    inse.close();
+}
+// End of functions added by EKM
 
 
 CountData::CountData(string infile){
@@ -348,6 +493,13 @@ void CountData::read_scatter(string infile){
             exit(1);
     }
     while(getline(in, st)){
+            // Start of addition by EKM
+            int back = st.size() - 1;
+            if (st[back] == '\r') {
+                cerr << "ERROR: Found carriage return in " << infile << "!\n";
+                exit(1);
+            }
+            // End of addition by EKM
              buf.clear();
              stringstream ss(st);
              line.clear();
@@ -386,6 +538,14 @@ void CountData::read_alfreqs(string infile){
             exit(1);
     }
     while(getline(in, st)){
+            // Start of addition by EKM
+            int back = st.size() - 1;
+            if (st[back] == '\r') {
+                cerr << "ERROR: Found carriage return in " << infile << "!\n";
+                exit(1);
+            }
+            // End of addition by EKM
+
              buf.clear();
              stringstream ss(st);
              line.clear();
@@ -452,6 +612,14 @@ void CountData::read_counts(string infile){
      * header contains population names
      */
     getline(in, st);
+    // Start of addition by EKM
+    int back = st.size() - 1;
+    if (st[back] == '\r') {
+        cerr << "ERROR: Found carriage return in " << infile << "!\n";
+        exit(1);
+    }
+    // End of addition by EKM
+
     stringstream ss(st);
     line.clear();
     while (ss>> buf){
@@ -545,6 +713,14 @@ void CountData::read_micro_data(string infile){
      * header contains population names
      */
     getline(in, st);
+    // Start of addition by EKM
+    int back = st.size() - 1;
+    if (st[back] == '\r') {
+        cerr << "ERROR: Found carriage return in " << infile << "!\n";
+        exit(1);
+    }
+    // End of addition by EKM
+
     stringstream ss(st);
     line.clear();
     while (ss>> buf){
@@ -1090,15 +1266,18 @@ void CountData::print_scatter(string outfile){
 
 void CountData::print_cov_cov(string outfile){
 	ogzstream out(outfile.c_str());
+
+
 	for (int i = 0; i < npop; i++){
 		for (int j = i; j < npop; j++){
 			out << id2pop[i]<< "."<< id2pop[j] << " ";
 		}
 	}
+
 	out <<  "\n";
 	int index1 = 0;
 	for (int l = 0; l < npop; l++){
-		for (int m = l; m< npop; m++){
+		for (int m = l; m < npop; m++){
 			out << id2pop[l]<< "."<< id2pop[m] << " ";
 			int index =0;
 			for (int i = 0; i < npop; i++){
@@ -1329,11 +1508,17 @@ double CountData::get_cov_var(string pop1, string pop2){
 void CountData::print_cov(string outfile){
 	ogzstream out(outfile.c_str());
 	vector<string> pops = list_pops();
-	for (int i = 0; i < pops.size(); i++) out << pops.at(i)<< " ";
+
+	for (int i = 0; i < pops.size(); i++) {
+		out << pops.at(i) << " ";
+	}
 	out << "\n";
-	for (int i = 0; i < pops.size(); i++){
+
+	for (int i = 0; i < pops.size(); i++) {
 		out << pops.at(i);
-		for(int j = 0; j < pops.size(); j++)	 out << " "<< gsl_matrix_get(cov, pop2id[pops[i]], pop2id[pops[j]]);
+		for(int j = 0; j < pops.size(); j++) {
+			out << " " << gsl_matrix_get(cov, pop2id[pops[i]], pop2id[pops[j]]);
+		}
 		out << "\n";
 	}
 
@@ -2233,6 +2418,14 @@ void CountData::set_hzy_fromfile(string infile){
             exit(1);
     }
     while(getline(in, st)){
+            // Start of addition by EKM
+            int back = st.size() - 1;
+            if (st[back] == '\r') {
+                cerr << "ERROR: Found carriage return in " << infile << "!\n";
+                exit(1);
+            }
+            // End of addition by EKM
+
              buf.clear();
              stringstream ss(st);
              line.clear();

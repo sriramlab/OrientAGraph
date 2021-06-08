@@ -12,10 +12,10 @@
 
 struct Node
 {
-	int index;
 	string name;
 	double height;
 	float mig_frac;
+	int index;
 	int desired_indegree;  // Added by EKM
 	int current_indegree;  // Added by EKM
 	bool is_tip;
@@ -55,8 +55,8 @@ public:
 	void copy(PopGraph*);
 	//void copy_helper(Graph::vertex_descriptor, Graph::vertex_descriptor, PopGraph *);
 
-	Graph g;      // BOOST graph
-	bool istree;  // is graph g a tree? if so, allow shortcuts
+	Graph g;
+	bool istree; // is this a tree? if so, allow shortcuts
 	bool isbinary;  // Added by EKM
 	int indexcounter;
 

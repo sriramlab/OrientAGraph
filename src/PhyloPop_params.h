@@ -32,7 +32,7 @@ public:
 	string root;
 
 	// read from previous run
-	bool read_graph;
+	bool readgraph;
 	string vfile;
 	string efile;
 
@@ -119,12 +119,12 @@ public:
 	bool givenmat;
 	string matfile;
 	bool refit;
-	int score;
+	bool doscore;
+	string scoremethod;
+	set<int> domlno;
+	set<int> tryallmigsbt;
 	bool givenpopaddorder;
 	string popaddorderfile;
-        bool domlno;
-	bool tryallmigs;
-	bool driftunits;
 	// End of parameters added by EKM
 };
 

@@ -24,7 +24,7 @@ PhyloPop_params::PhyloPop_params(){
 	maxit2 = 20;
 	set_root = false;
 	root = "NA";
-	read_graph = false;
+	readgraph = false;
 	vfile = "NA";
 	efile = "NA";
 	quick = false;
@@ -64,15 +64,13 @@ PhyloPop_params::PhyloPop_params(){
 
 	// Start of parameters added by EKM
 	freq2stat = false;
-        givenmat = false;
+	givenmat = false;
 	matfile = "NA";
 	refit = false;
-	score = 0;
+	doscore = false;
+	scoremethod = "rfit";
 	givenpopaddorder = false;
 	popaddorderfile = "NA";
-        domlno = false;
-	tryallmigs = false;
-	driftunits = false;
 	// End of parameters added by EKM
 }
 
@@ -90,6 +88,14 @@ void PhyloPop_params::read_migfracs(string infile){
      }
 
     while(getline(in, st)){
+    		// Start of addition by EKM
+            int back = st.size() - 1;
+            if (st[back] == '\r') {
+                    cout << "ERROR: " << infile << " generated using Windows. Unable to read!\n";
+                    exit(1);
+            }
+            // End of addition by EKM
+
             buf.clear();
             stringstream ss(st);
             line.clear();

@@ -24,6 +24,7 @@ PopGraph::PopGraph(vector<string> first3pops){
 
 	g = Graph(1);
 	istree = true;
+	isbinary = false;  // Added by EKM
 	Graph::vertex_descriptor v = *vertices(g).first;
 	Graph::vertex_descriptor v2, v3, v4, v5, v6;
 	Graph::edge_descriptor e;
