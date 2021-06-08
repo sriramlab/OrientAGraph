@@ -48,9 +48,11 @@ public:
 	gsl_matrix *scatter; //current scatter matrix
 	double phi, resphi;
 
+	void set_countdata(CountData*);
+
 	//set the graph structure to a Newick string
+	void set_graph(GraphState2*);
 	void set_graph(string);
-	void set_graph_from_file(string);
 	void set_graph_from_string(string);
 	void set_countdata(CountData*);
 	//set graph from files with the vertices and edges
@@ -79,6 +81,50 @@ public:
 	int global_hillclimb(int);
 	int many_global_hillclimb();
 	void iterate_global_hillclimb();
+
+	// Start of functions added by EKM
+	PopGraph* tree_binary;
+	PopGraph* tree_maxllik;
+	double mlno_epsilon;
+
+	void mlno_fit_graph();
+	bool mlno_doit();
+	void mlno_mlbt_only_doit();
+	bool mlno_reroot_at_outgroup();
+
+	bool mlno_find_best_orientation();
+	double mlno_find_best_base_tree();
+
+	void mlno_compute_sigma_cor();
+	void mlno_compute_sigma_cor_cov();
+	void mlno_compute_sigma_cor_f2();
+
+	int mlno_treemix_to_binary_graph();
+	void mlno_binary_to_treemix_graph();
+	int mlno_check_if_nonbinary();
+
+	void mlno_get_root_einds(vector<pair<int, int> > &root_einds);
+	void mlno_get_admixture_vind_combos(int &nmig, vector<set<int> > &admixture_vind_combos);
+	bool mlno_reorient_huber2019(pair<int, int> &root_eind, set<int> &admixture_vinds);
+	void mlno_move_root(pair<int, int> &root_eind);
+
+	pair<int, int> mlno_get_root_eind_to_outgroup();
+	bool mlno_label_topology_treechild();
+	bool mlno_is_labeled_treebased();
+	bool mlno_label_topology_treebased();
+	bool mlno_label_and_propagate_treebased(Graph::edge_descriptor e, bool is_mig);
+	bool mlno_apply_c1_treebased(Graph::edge_descriptor e, bool is_mig);
+	bool mlno_apply_c2_treebased(Graph::edge_descriptor e, bool is_mig);
+	void mlno_print_graph_w_params();
+	void mlno_print_edge_w_params(Graph::edge_descriptor e);
+	void mlno_print_graph();
+	void mlno_print_edge(Graph::edge_descriptor e);
+	void mlno_print_vertex(Graph::vertex_descriptor v);
+	void mlno_print_edges(vector<Graph::edge_descriptor> &edges);
+
+	pair<bool, pair<int, int> > mlno_add_mig_exhaustive();
+	void mlno_get_vertices_below(Graph::vertex_descriptor v, set<Graph::vertex_descriptor> &vset);
+	// End of functions added by EKM
 
 	//add a new population
 	void add_pop();

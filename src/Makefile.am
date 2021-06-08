@@ -1,5 +1,5 @@
 
-bin_PROGRAMS = treemix threepop fourpop f4ratio
+bin_PROGRAMS = orientagraph threepop fourpop f4ratio
 DISTCHECK_CONFIGURE_FLAGS=LDFLAGS=-L/opt/local/lib CXXFLAGS=-I/opt/local/include
 orientagraph_SOURCES = TreeMix.cpp gzstream.cpp PopGraph.cpp nnls.cpp PhyloPop_params.cpp CountData.cpp CmdLine.cpp GraphState2.cpp
 

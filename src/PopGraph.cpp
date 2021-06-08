@@ -37,6 +37,7 @@ PopGraph::PopGraph(vector<string> first3pops){
 	g[v].is_mig = false;
 	g[v].mig_frac = 0;
 	root = v;
+	isbinary = false;  // Added by EKM
 
 	// add the first three populations to the tree
 	// tree will look like this:
@@ -696,8 +697,10 @@ set<Graph::edge_descriptor> PopGraph::get_root_adj_edge(){
 	set<Graph::edge_descriptor> toreturn;
 	pair<Graph::out_edge_iterator, Graph::out_edge_iterator> oute = out_edges(root, g);
 	toreturn.insert( *oute.first);
+
 	oute.first++;
 	toreturn.insert( *oute.first);
+
 	return toreturn;
 }
 
@@ -2311,3 +2314,4 @@ int PopGraph::set_mig_frac(Graph::edge_descriptor e, double newfrac){
 	}
 	return toreturn;
 }
+
