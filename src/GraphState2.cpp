@@ -10,7 +10,7 @@
 GraphState2::GraphState2(){
 }
 
-GraphState2::GraphState2(CountData* counts, PhyloPop_params* pa){
+GraphState2::GraphState2(CountData* counts, PhyloPop_params* pa) {
 	params = pa;
 	countdata = counts;
 	allpopnames = counts->list_pops();
@@ -29,8 +29,12 @@ GraphState2::GraphState2(CountData* counts, PhyloPop_params* pa){
 
 		cout << "Populations will be added in the following order:";
 		string line;
+		int back;
 		int i = 0;
 		while (getline(fptr, line)) {
+			back = line.size() - 1;
+			if (line[back] == '\r') line.erase(back);  // Windows
+
 			allpopnames.push_back(line);
 			cout << " " << allpopnames[i];
 			i++;
@@ -178,7 +182,7 @@ void GraphState2::set_graph_from_file(string vfile, string efile) {
 
 	string st;
 	float len, w, mig_frac, totalw, maxf;
-	int nv, index, index1, index2, intStat;
+	int nv, index, index1, index2, intStat, back;
 
 	// Set-up
 	tree->g.clear();
@@ -195,6 +199,9 @@ void GraphState2::set_graph_from_file(string vfile, string efile) {
 
 	nv = 0;
 	while(getline(vin, st)){
+		back = st.size() - 1;
+		if (st[back] == '\r') st.erase(back);  // Windows
+
 		string buf;
 		stringstream ss(st);
 		line.clear();
@@ -255,6 +262,9 @@ void GraphState2::set_graph_from_file(string vfile, string efile) {
 	igzstream ein(efile.c_str());
 
 	while(getline(ein, st)) {
+		back = st.size() - 1;
+		if (st[back] == '\r') st.erase(back);  // Windows
+
 		string buf;
 		stringstream ss(st);
 		line.clear();
@@ -386,11 +396,15 @@ void GraphState2::set_graph_from_file(string infile){
 	igzstream in(infile.c_str());
 
 	getline(in, st);
+	int back = st.size() - 1;
+	if (st[back] == '\r') st.erase(back);  // Windows
+
 	current_npops = allpopnames.size();
 
 	gsl_matrix_free(sigma);
 	sigma = gsl_matrix_alloc(current_npops, current_npops);
 	gsl_matrix_set_zero(sigma);
+
 	gsl_matrix_free(sigma_cor);
 	sigma_cor = gsl_matrix_alloc(current_npops, current_npops);
 	gsl_matrix_set_zero(sigma_cor);

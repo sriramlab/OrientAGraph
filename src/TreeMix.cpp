@@ -78,8 +78,9 @@ void process_list_of_ints(string listofints, set<int> &amigs, int nmigs) {
     } else {
         istringstream ss(listofints);
         string word;
-        while(getline(ss, word, ','))
+        while(getline(ss, word, ',')) {
             amigs.insert(atoi(word.c_str()));
+        }
     }
 }
 
@@ -399,7 +400,7 @@ int main(int argc, char *argv[]){
     if (!p.cor_mig && !p.flip && p.nmig > 0) state.flip_mig();
     if (p.flip) state.flip_mig(p.flipstring);
 
-    if (p.set_root) state.mlno_reroot_at_outgroup();  // Added by EKM
+    //if (p.set_root) state.mlno_reroot_at_outgroup();  // Added by EKM
 
     state.print_treeout(outstem);  // Change by EKM
 

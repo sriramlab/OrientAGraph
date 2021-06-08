@@ -88,6 +88,14 @@ void PhyloPop_params::read_migfracs(string infile){
      }
 
     while(getline(in, st)){
+    		// Start of addition by EKM
+            int back = st.size() - 1;
+            if (st[back] == '\r') {
+                    cout << "ERROR: " << infile << " generated using Windows. Unable to read!\n";
+                    exit(1);
+            }
+            // End of addition by EKM
+
             buf.clear();
             stringstream ss(st);
             line.clear();
