@@ -23,7 +23,7 @@ GraphState2::GraphState2(CountData* counts, PhyloPop_params* pa) {
 		
 		ifstream fptr(pa->popaddorderfile.c_str());
 		if (!fptr.is_open()) {
-			cout << "Unable to open " << pa->popaddorderfile << "\n";
+			cerr << "Unable to open " << pa->popaddorderfile << "\n";
 			exit(1);
 		}
 
@@ -192,7 +192,7 @@ void GraphState2::set_graph_from_file(string vfile, string efile) {
 	// Process vertex file
 	intStat = stat(vfile.c_str(), &stFileInfo);
 	if (intStat != 0) {
-		std::cerr<< "ERROR: cannot open file " << vfile << "\n";
+		std::cerr << "ERROR: cannot open file " << vfile << "\n";
 		exit(1);
 	}
 	igzstream vin(vfile.c_str());
@@ -256,7 +256,7 @@ void GraphState2::set_graph_from_file(string vfile, string efile) {
 	// Process edge file
 	intStat = stat(efile.c_str(), &stFileInfo);
 	if (intStat != 0) {
-		std::cerr<< "ERROR: cannot open file " << efile << "\n";
+		std::cerr << "ERROR: cannot open file " << efile << "\n";
 		exit(1);
 	}
 	igzstream ein(efile.c_str());
@@ -370,12 +370,12 @@ void GraphState2::set_graph_from_file(string vfile, string efile) {
 
 	mlno_print_graph_w_params();
 
-	//mlno_compute_sigma_cor();  // Change by EKM
+	mlno_compute_sigma_cor();  // Change by EKM
 
-	//current_llik = llik();
+	current_llik = llik();
 }
 
-void GraphState2::set_graph_from_file(string infile){
+void GraphState2::set_graph_from_file(string infile) {
 	// Define variables
 	struct stat stFileInfo;
 
@@ -415,16 +415,22 @@ void GraphState2::set_graph_from_file(string infile){
 	// Start of change by EKM
 	for (mi = tips.begin(); mi != tips.end(); mi++) {
 		si = std::find(allpopnames.begin(), allpopnames.end(), mi->first);
-		if (si != allpopnames.end()) {
+		if (si == allpopnames.end()) {
 			cerr << "ERROR: Population " << mi->first << " found in input tree but not input data!\n";
 			exit(1);
 		}
 	}
 	for (si = allpopnames.begin(); si != allpopnames.end(); si++){
 		if (tips.find(*si) == tips.end()) {
-			cerr << "WARNING: Population " << *si << " found in input data but not tree!\n";
+			cerr << "ERROR: Population " << *si << " found in input data but not tree!\n";
+			exit(1);
 		}
 	}
+
+	// TODO: 
+	// Enable user to provide a tree on a subset of populations, so that the remaining
+	// populations are added. This requires updating the ordering of the list allpopnames
+	// as well as the matrix files, and so on.
 
 	current_npops = tips.size();
 	mlno_compute_sigma_cor();
@@ -443,11 +449,11 @@ void GraphState2::set_graph_from_string(string newick){
 	for (map<string, Graph::vertex_descriptor>::iterator it = tips.begin(); it != tips.end(); it++){
 		allpopnames.push_back(it->first);
 		if (countdata->pop2id.find(it->first) == countdata->pop2id.end()){
-			cerr << "ERROR: cannot find population "<< it->first<< "\n";
+			cerr << "ERROR: cannot find population " << it->first << "\n";
 			exit(1);
 		}
-
 	}
+
     current_npops = allpopnames.size();
 	gsl_matrix_free(sigma);
 	sigma = gsl_matrix_alloc(current_npops, current_npops);
@@ -456,10 +462,12 @@ void GraphState2::set_graph_from_string(string newick){
 	sigma_cor = gsl_matrix_alloc(current_npops, current_npops);
 	gsl_matrix_set_zero(sigma_cor);
 
-	//tree->print();
-	set_branches_ls();
+	// Start of change by EKM
+	//set_branches_ls();
+	mlno_compute_sigma_cor();
+	// End of change by EKM
+
 	current_llik = llik();
-	cout << "ln(lk): "<< current_llik << "\n";
 }
 
 map<Graph::vertex_descriptor, int> GraphState2::get_v2index(){
@@ -3123,6 +3131,7 @@ void GraphState2::add_pop(){
 	//cout << "not here?\n"; cout.flush();
 
 	string toadd = allpopnames[current_npops];
+
 	cout << "Adding "<< toadd << " ["<< current_npops+1 << "/" << allpopnames.size() <<"]\n";
 
 	//If adding with a migration event
@@ -6347,16 +6356,17 @@ pair<bool, double> GraphState2::mlno_find_best_base_tree() {
 		}
 	}
 
-	//if (found_base_tree) cout << " is treebased"; cout.flush();
-	//else cout << " is NOT treebased"; cout.flush();
-	//for (int i = 0; i < keepllikvec.size()-1; i++) {
-	//	if (abs(keepllikvec[i] - keepllikvec[i+1]) > 2) {
-	//		cout << "EKM: FOUND A DIFFERENCE BETWEEN BASE TREES\n";
-	//		cout << keepllikvec[0] << "vs" << keepllikvec[1] << "\n";
-	//		mlno_print_graph_w_params();
-	//		cout << "EKM: NEXT\n";
-	//	}
-	//}
+	if (params->doscore) {
+		cout << "\nFound " << keepllikvec.size() << " base trees with scores: ";
+		if (keepllikvec.size() > 0) { 
+			cout << keepllikvec[0];
+			for (int i = 1; i < keepllikvec.size(); i++) cout << "," << keepllikvec[i];
+		}
+	    cout << "\n";
+	} else {
+		if (found_base_tree) cout << " is treebased"; cout.flush();
+		//else cout << " is NOT treebased"; cout.flush();
+	}
 
 	toreturn.first = found_base_tree;
 	toreturn.second = keep_llik;
@@ -7157,7 +7167,7 @@ pair<int, int> GraphState2::mlno_get_root_eind_to_outgroup() {
  	 * Added by EKM in January 2021
  	 */  
 	if (!params->set_root) {
-		cout << "ERROR in mlno_get_root_eind_to_outgroup: Not outgroup specified by user!\n";
+		cerr << "ERROR in mlno_get_root_eind_to_outgroup: Not outgroup specified by user!\n";
 		exit(1);
 	}
 
@@ -7182,7 +7192,7 @@ pair<int, int> GraphState2::mlno_get_root_eind_to_outgroup() {
 	}
 
 	if (!found_out_group) {
-		cout << "ERROR in mlno_get_root_eind_to_outgroup: Outgroup does not exist!\n";
+		cerr << "ERROR in mlno_get_root_eind_to_outgroup: Outgroup does not exist!\n";
 		exit(1);
 	}
 
@@ -7200,7 +7210,7 @@ void GraphState2::mlno_get_root_einds(vector<pair<int, int> > &root_einds) {
  	 */ 
 
 	if (!tree->isbinary) {
-		cout << "ERROR in mlno_get_root_einds: Graph is not in the correct format!\n";
+		cerr << "ERROR in mlno_get_root_einds: Graph is not in the correct format!\n";
 		exit(1);
 	}
 
@@ -7278,7 +7288,7 @@ void GraphState2::mlno_get_admixture_vind_combos(int &nmig, vector<set<int> > &a
  	 */ 
 
 	if (!tree->isbinary) {
-		cout << "ERROR in mlno_get_admixture_vind_combos: Graph is not in the correct format!\n";
+		cerr << "ERROR in mlno_get_admixture_vind_combos: Graph is not in the correct format!\n";
 		exit(1);
 	}
 
@@ -7802,7 +7812,7 @@ bool GraphState2::mlno_label_topology_treebased() {
 	 */
 
 	if (!tree->isbinary) {
-		cout << "ERROR in mlno_label_topology_treebased: Graph is not in the proper state!\n";
+		cerr << "ERROR in mlno_label_topology_treebased: Graph is not in the proper state!\n";
 		exit(1);
 	}
 
@@ -7867,7 +7877,7 @@ bool GraphState2::mlno_label_topology_treechild() {
 	 */
 
 	if (!tree->isbinary) {
-		cout << "ERROR in mlno_label_topology_treechild: Graph is not in the proper state!\n";
+		cerr << "ERROR in mlno_label_topology_treechild: Graph is not in the proper state!\n";
 		exit(1);
 	}
 

@@ -378,7 +378,7 @@ void CountData::read_scatter(string infile){
             // Start of addition by EKM
             int back = st.size() - 1;
             if (st[back] == '\r') {
-                cout << "ERROR: Found carriage return in " << infile << "!\n";
+                cerr << "ERROR: Found carriage return in " << infile << "!\n";
                 exit(1);
             }
             // End of addition by EKM
@@ -423,7 +423,7 @@ void CountData::read_alfreqs(string infile){
             // Start of addition by EKM
             int back = st.size() - 1;
             if (st[back] == '\r') {
-                cout << "ERROR: Found carriage return in " << infile << "!\n";
+                cerr << "ERROR: Found carriage return in " << infile << "!\n";
                 exit(1);
             }
             // End of addition by EKM
@@ -497,7 +497,7 @@ void CountData::read_counts(string infile){
     // Start of addition by EKM
     int back = st.size() - 1;
     if (st[back] == '\r') {
-        cout << "ERROR: Found carriage return in " << infile << "!\n";
+        cerr << "ERROR: Found carriage return in " << infile << "!\n";
         exit(1);
     }
     // End of addition by EKM
@@ -598,7 +598,7 @@ void CountData::read_micro_data(string infile){
     // Start of addition by EKM
     int back = st.size() - 1;
     if (st[back] == '\r') {
-        cout << "ERROR: Found carriage return in " << infile << "!\n";
+        cerr << "ERROR: Found carriage return in " << infile << "!\n";
         exit(1);
     }
     // End of addition by EKM
@@ -1391,7 +1391,6 @@ void CountData::print_cov(string outfile){
 	vector<string> pops = list_pops();
 
 	for (int i = 0; i < pops.size(); i++) {
-		cout << i << "/" << pops.size() << " " << pops.at(i) << "\n";
 		out << pops.at(i) << " ";
 	}
 	out << "\n";
@@ -2305,7 +2304,7 @@ void CountData::set_hzy_fromfile(string infile){
             // Start of addition by EKM
             int back = st.size() - 1;
             if (st[back] == '\r') {
-                cout << "ERROR: Found carriage return in " << infile << "!\n";
+                cerr << "ERROR: Found carriage return in " << infile << "!\n";
                 exit(1);
             }
             // End of addition by EKM

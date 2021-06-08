@@ -178,6 +178,11 @@ int main(int argc, char *argv[]){
     if (cmdline.HasSwitch("-root")) {
     	p.set_root = true;
     	p.root = cmdline.GetArgument("-root", 0);
+        size_t found = p.root.find(',');
+        if (found != string::npos) {
+            cerr << "ERROR: Currently outgroup must be a single population when running MLNO!\n";
+            exit(1);
+        }
     }
     if (cmdline.HasSwitch("-f2_cor")){
     	p.cor_f2 = true;
@@ -260,11 +265,11 @@ int main(int argc, char *argv[]){
 
     if (p.readtree) state.set_graph_from_file(p.treefile);
     else if (p.readgraph) {
-    	state.set_graph_from_file(p.vfile, p.efile);
-    	//while (state.current_llik <= -DBL_MAX) {
-    	//	p.smooth_scale = p.smooth_scale *2;
-    	//	state.current_llik = state.llik();
-    	//}
+        state.set_graph_from_file(p.vfile, p.efile);
+        //while (state.current_llik <= -DBL_MAX) {
+        //	p.smooth_scale = p.smooth_scale *2;
+        //	state.current_llik = state.llik();
+        //}
     }
 
     // Start of addition by EKM - Score input graph and exit
@@ -321,30 +326,36 @@ int main(int argc, char *argv[]){
     if (p.refit) state.mlno_fit_graph();
     // End of addition by EKM
 
-    // add all populations
-    while (!p.readtree && counts.npop > state.current_npops){
-    	state.add_pop();
-    	//state.iterate_hillclimb();
-    	if (p.cor_mig) {
-    		p.fitmig = false;
-    		state.iterate_local_hillclimb_wmig_all();
-    		p.fitmig = true;
-    	}
-    	else state.iterate_hillclimb();
-    	cout << "ln(likelihood): "<< state.current_llik << " \n";
-    	cout << state.tree->get_newick_format() << "\n";
-    }
+    if (state.get_nmig() > 0) {
+        if (p.set_root) state.mlno_reroot_at_outgroup(); // Added by EKM
+    } else {
+        // add remaining populations
+        while (counts.npop > state.current_npops){
+            state.add_pop();
+            //state.iterate_hillclimb();
+            if (p.cor_mig) {
+                p.fitmig = false;
+                state.iterate_local_hillclimb_wmig_all();
+                p.fitmig = true;
+            }
+            else state.iterate_hillclimb();
+            cout << "ln(likelihood): " << state.current_llik << " \n";
+            cout << state.tree->get_newick_format() << "\n";
+        }
 
-    //do global rearrangements
-    if (p.global){
-    	cout << "Testing global rearrangements\n"; cout.flush();
-    	state.iterate_global_hillclimb();
-    	if (p.f2) state.set_branches_ls_f2();
-    	else state.set_branches_ls();
-    }
+        //do global rearrangements
+        if (p.global) {
+            cout << "Testing global rearrangements\n"; cout.flush();
+            state.iterate_global_hillclimb();
+            if (p.f2) state.set_branches_ls_f2();
+            else state.set_branches_ls();
+        }
 
-    //place the root
-    if (p.set_root) state.place_root(p.root);
+        //place the root
+        if (p.set_root) {
+            state.place_root(p.root);
+        }
+    }
 
     //print the starting likelihood (after tree building)
     likout << "Starting ln(likelihood) with "<< state.get_nmig() <<" migration events: "<< state.llik() << " \n";
@@ -400,7 +411,7 @@ int main(int argc, char *argv[]){
     if (!p.cor_mig && !p.flip && p.nmig > 0) state.flip_mig();
     if (p.flip) state.flip_mig(p.flipstring);
 
-    //if (p.set_root) state.mlno_reroot_at_outgroup();  // Added by EKM
+    if (p.set_root) state.mlno_reroot_at_outgroup();  // Added by EKM
 
     state.print_treeout(outstem);  // Change by EKM
 
