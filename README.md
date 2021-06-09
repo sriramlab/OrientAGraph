@@ -121,3 +121,4 @@ Options added for OrientAGraph:
 -popaddorder [population list file] Order to add populations when building
     starting tree
 ```
+Note that you need to add the `LDFLAGS="-static"` option to the configure commands for the binaries to be compiled statically.
