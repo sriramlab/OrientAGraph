@@ -44,6 +44,8 @@ public:
 	// initialize the graph
 	PopGraph();
 
+
+
 	// initialize from a Newick string
 	PopGraph(string);
 	void set_graph(string); //or set it to a Newick string
@@ -67,6 +69,7 @@ public:
 
 	Graph::vertex_descriptor add_tip(Graph::vertex_descriptor, string);
 	void remove_tip(Graph::vertex_descriptor);
+
 
 	void set_root(Graph::vertex_descriptor);
 	set<Graph::vertex_descriptor> get_root_adj();
@@ -131,6 +134,9 @@ public:
 	int set_mig_frac(Graph::edge_descriptor, double);
 	//local rearrangements with migration
 	bool local_rearrange_wmig(Graph::vertex_descriptor, int);
+
+
+
 };
 
 #endif /* POPGRAPH_H_ */

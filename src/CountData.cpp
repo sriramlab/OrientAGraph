@@ -237,124 +237,6 @@ CountData::CountData(CountData * c, vector<string> names, gsl_matrix* model, Phy
 	//}
 }
 
-
-// Start of functions added by EKM
-void CountData::read_matrix(string infile) {
-	/*
- 	 * Allows user to give matrix as input instead of allele frequencies.
- 	 *
- 	 * Added by EKM in January 2021
-	 */
-
-	// Define variables
-	struct stat stFileInfo;
-        map<int, string> tmp_id2pop;
-	igzstream fptr;
-	string line, word, ext;
-	int r, c, i, j, tmp_npop, intStat;
-
-	// Read sample covariance matrix OR f2-statistics matrix from file
-	intStat = stat(infile.c_str(), &stFileInfo);
-	if (intStat !=0){
-		std::cerr<< "ERROR: cannot open file " << infile << "\n";
-		exit(1);
-	}
-	ext = infile.substr(infile.size() - 3, 3);
-	if (ext != ".gz") {
-		cout << "WARNING: " << infile 
-		     << " does not end in .gz may have trouble reading!\n";
-	}
-	fptr.open(infile.c_str());
-
-	// Process population names in first row of file
-	npop = 0;
-	getline(fptr, line);
-	stringstream linestream(line);
-	while (getline(linestream, word, ' ')) {
-		pop2id.insert(pair<string, int>(word, npop));
-		id2pop.insert(pair<int, string>(npop, word));
-		npop += 1;
-	}
-
-	// Set-up 
-	cov = gsl_matrix_alloc(npop, npop);
-	cov_var = gsl_matrix_alloc(npop, npop);
-
-	// Process matrix
-	r = 0;
-	while (getline(fptr, line)) {
-		stringstream linestream(line);
-		c = 0;
-		while(getline(linestream, word, ' ')) {
-			if (c == 0) {
-				i = pop2id[word];
-			} else {
-				j = c - 1;
-				gsl_matrix_set(cov, i, j, atof(word.c_str()));
-				gsl_matrix_set(cov_var, i, j, 0);
-			}
-			c++;
-		}
-		r++;
-	}
-
-	// Clean up
-	fptr.close();
-
-	// If no SE file is given, then assume SE is 0.
-	// Later, SE is shifted by lambda = 0.0001 to avoid arithmetic issues.
-	if (params->matfile.empty()) return;
-
-	// Read standard error for sample covariance matrix OR f2-statistics matrix from file
-	intStat = stat(params->matfile.c_str(), &stFileInfo);
-	if (intStat !=0){
-		std::cerr<< "ERROR: cannot open file " << params->matfile << "\n";
-		exit(1);
-	}
-	ext = infile.substr(params->matfile.size() - 3, 3);
-	if (ext != ".gz") {
-		cout << "WARNING: " << params->matfile 
-		     << " does not end in .gz may have trouble reading!\n";
-	}
-	fptr.open(params->matfile.c_str());
-
-	// Process population names in first row of file 
-	tmp_npop = 0;
-	getline(fptr, line);
-	stringstream tmp_linestream(line);
-	while (getline(tmp_linestream, word, ' ')) {
-		tmp_id2pop.insert(pair<int, string>(tmp_npop, word));
-		tmp_npop += 1;
-	}
-
-	if (npop != tmp_npop) {
-		cout << "ERROR: Number of populations is not the same in the input matrices!\n";
-		exit(1);
-	}
-
-	// Process matrix
-	r = 0;
-	while (getline(fptr, line)) {
-		stringstream tmp_linestream(line);
-		c = 0;
-		while(getline(tmp_linestream, word, ' ')) {
-			if (c == 0) {
-				i = pop2id[word];
-			} else {
-				j = pop2id[tmp_id2pop[c - 1]];
-				gsl_matrix_set(cov_var, i, j, atof(word.c_str()));
-			}
-			c++;
-		}
-		r++;
-	}
-
-	// Clean up
-	fptr.close();
-}
-// End of functions added by EKM
-
-
 void CountData::set_cov_ran(gsl_matrix* model,gsl_rng* r){
 
 	// 1. Take SVD of model
@@ -1032,7 +914,6 @@ void CountData::set_cov(){
 		else trim.insert(make_pair(pop, t));
 	}
 	if (!params->sample_size_correct) sumtrim = 0;
-
 	//calculate the covariance matrix in each block
 	cout << "Estimating covariance matrix in "<< nblock << " blocks of size "<< params->window_size <<"\n"; cout.flush();
 	for (int k = 0; k < nblock ; k++){
@@ -2179,6 +2060,7 @@ pair<double, double> CountData::calculate_drift(int p1, int p2){
 		tmpnum = tmpnum/ (double) tmp_nsnp;
 		tmpdenom = tmpdenom/ (double) tmp_nsnp;
 		tmpnum += t1;
+		//cout << pop1 << " "<< meanhzy1 << " "<< mean_n1 << " "<< t1 << " "<< tmpnum << " "<< tmpdenom << "\n";
 		double tmpc = tmpnum/tmpdenom;
 		blocks.push_back(tmpc);
 	}
@@ -2242,6 +2124,7 @@ pair<double, double> CountData::calculate_mean(int p1){
 		tmpnum = tmpnum/ (double) tmp_nsnp;
 		//tmpdenom = tmpdenom/ (double) tmp_nsnp;
 		//tmpnum += t1;
+		//cout << pop1 << " "<< meanhzy1 << " "<< mean_n1 << " "<< t1 << " "<< tmpnum << " "<< tmpdenom << "\n";
 		//double tmpc = tmpnum/tmpdenom;
 		blocks.push_back(tmpnum);
 	}

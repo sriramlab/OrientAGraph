@@ -3,8 +3,6 @@
  *
  *  Created on: Jun 28, 2011
  *      Author: pickrell
- *
- * MLNO additions by ekmolloy in January 2021
  */
 
 #include "GraphState2.h"
@@ -124,12 +122,10 @@ void GraphState2::print_sigma(){
 	}
 }
 
-
 void GraphState2::set_graph(string newick){
 	cerr << "WARNING: Check function is correct before using!\n";  // Added by EKM
 
 	tree->set_graph(newick);
-
 	current_npops = allpopnames.size();
 	gsl_matrix_free(sigma);
 	sigma = gsl_matrix_alloc(current_npops, current_npops);
@@ -138,8 +134,9 @@ void GraphState2::set_graph(string newick){
 	sigma_cor = gsl_matrix_alloc(current_npops, current_npops);
 	gsl_matrix_set_zero(sigma_cor);
 
-	set_branches_ls_wmig();
-	current_llik = llik();
+    set_branches_ls_wmig();
+
+    current_llik = llik();
 }
 
 void GraphState2::set_graph(GraphState2* g){
@@ -147,7 +144,6 @@ void GraphState2::set_graph(GraphState2* g){
 
 	tree->copy( g->tree);
 	current_npops = allpopnames.size();
-
 	gsl_matrix_free(sigma);
 	sigma = gsl_matrix_alloc(current_npops, current_npops);
 	gsl_matrix_set_zero(sigma);
@@ -155,8 +151,10 @@ void GraphState2::set_graph(GraphState2* g){
 	sigma_cor = gsl_matrix_alloc(current_npops, current_npops);
 	gsl_matrix_set_zero(sigma_cor);
 
-	set_branches_ls_wmig();
-	current_llik = llik();
+    set_branches_ls_wmig();
+    cout << llik()<< "\n";
+    current_llik = llik();
+
 }
 
 
@@ -359,8 +357,8 @@ void GraphState2::set_graph_from_file(string vfile, string efile) {
  	//	mig_frac = atof(line[5].c_str());
  	//	e = edge(sv, tv, tree->g).first;	
  	//	//if (tree->g[e].is_mig) tree->set_mig_frac(e, mig_frac);
-  //}
-  //ein2.close();
+     	//}
+     	//ein2.close();
 	// End of comment by EKM
 
 	gsl_matrix_free(sigma);
@@ -446,10 +444,8 @@ void GraphState2::set_graph_from_string(string newick){
 	cerr << "WARNING: Check function is correct before using!\n";  // Added by EKM
 
 	set_graph(newick);
-
 	map<string, Graph::vertex_descriptor> tips = tree->get_tips(tree->root);
 	allpopnames.clear();
-
 	for (map<string, Graph::vertex_descriptor>::iterator it = tips.begin(); it != tips.end(); it++){
 		allpopnames.push_back(it->first);
 		if (countdata->pop2id.find(it->first) == countdata->pop2id.end()){
@@ -458,7 +454,7 @@ void GraphState2::set_graph_from_string(string newick){
 		}
 	}
 
-  current_npops = allpopnames.size();
+    current_npops = allpopnames.size();
 	gsl_matrix_free(sigma);
 	sigma = gsl_matrix_alloc(current_npops, current_npops);
 	gsl_matrix_set_zero(sigma);
@@ -473,7 +469,6 @@ void GraphState2::set_graph_from_string(string newick){
 
 	current_llik = llik();
 }
-
 
 map<Graph::vertex_descriptor, int> GraphState2::get_v2index(){
 
@@ -2087,6 +2082,7 @@ void GraphState2::set_branches_ls_wmig_estmig(){
 
 }
 
+
 void GraphState2::set_branches_ls(){
 
 	/*
@@ -2384,12 +2380,14 @@ double GraphState2::llik_normal(){
 			double pred = gsl_matrix_get(sigma_cor, i, j);
 			double obs = countdata->get_cov(p1, p2);
 			double se = countdata->get_cov_var(p1, p2);
+
 			double dif = obs-pred;
 			//double scale = params->smooth_scale;
 			double toadd = lndgauss(dif, se);
 			toreturn += toadd;
 			//double toadd = gsl_ran_gaussian_pdf(dif, se * scale);
 			//toreturn+= log(toadd);
+
 			//}
 		}
 	}
@@ -2402,7 +2400,6 @@ double lndgauss(double dif, double se){
 	toreturn += -(dif*dif) / (2*se*se);
 	return toreturn;
 }
-
 int GraphState2::local_hillclimb(int inorder_index){
 	// if there was a rearrangement, return 1. otw 0.
 	//
@@ -5615,6 +5612,7 @@ void GraphState2::set_branches_ls_f2_precompute_old(){
 	gsl_multifit_linear_free(work);
 	gsl_vector_free(c);
 	gsl_matrix_free(cov);
+
 }
 
 void GraphState2::set_branches_ls_f2_precompute(){
@@ -5970,6 +5968,7 @@ void GraphState2::mlno_print_graph_w_params() {
 		if (tree->g[*ei].is_mig)
 			mlno_print_edge_w_params(*ei);
 	}
+
 	cout.flush();
 }
 
@@ -6036,6 +6035,7 @@ void GraphState2::mlno_print_graph() {
 		if (tree->g[*ei].is_mig)
 			mlno_print_edge(*ei);
 	}
+
 	cout.flush();
 }
 
@@ -7286,6 +7286,7 @@ void GraphState2::mlno_get_admixture_vind_combos(int &nmig, vector<set<int> > &a
  	 *
  	 * Added by EKM in January 2021
  	 */ 
+
 	if (!tree->isbinary) {
 		cerr << "ERROR in mlno_get_admixture_vind_combos: Graph is not in the correct format!\n";
 		exit(1);
@@ -7459,11 +7460,11 @@ void GraphState2::mlno_compute_sigma_cor() {
 void GraphState2::mlno_compute_sigma_cor_cov() {
 	/*
 	 * Computes the expected value of covariances, storing the result in
-   * 'sigma_cor', for the current graph state 'tree', *without* refitting
-   * the graph.
-   *
+         * 'sigma_cor', for the current graph state 'tree', *without* refitting
+         * the graph.
+         *
 	 * Added by EKM in March 2021 - based on set_branches_ls() function
-   */
+         */
 
 	map<Graph::edge_descriptor, int> edge2index;
 	set<Graph::edge_descriptor> root_adj = tree->get_root_adj_edge(); //get the ones next to the root
