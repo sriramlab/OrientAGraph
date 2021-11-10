@@ -122,3 +122,8 @@ Options added for OrientAGraph:
     starting tree
 ```
 Note that you need to add the `LDFLAGS="-static"` option to the configure commands for the binaries to be compiled statically.
+
+Recommended Usage
+------------
++ To execute OrientAGraph as described in our paper, you must include the `-allmigs` and `-mlno` flags to the end of your command. These options expand the maximum likelihood search!
++ To determine how to set the other options, we recommend reading the [TreeMix manual](https://bitbucket.org/nygcresearch/treemix/downloads/). Based on our experience, it is important to use the `-root <outgroup>` flag. This option roots the starting tree at the user-specified outgroup before starting the network search.
