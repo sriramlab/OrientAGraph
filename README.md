@@ -47,6 +47,13 @@ Typically, homebrew will install GSL with the following paths:
 export INCLUDE_PATH="/usr/local/Cellar/gsl/2.6/include"
 export LIBRARY_PATH="/usr/local/Cellar/gsl/2.6/lib"
 ```
+or
+```
+export INCLUDE_PATH=/opt/homebrew/Cellar/gsl/2.6/include
+export LIBRARY_PATH=/opt/homebrew/Cellar/gsl/2.6/lib
+```
+Note that you may also need to update 2.6 depending on the version installed by Homebrew.
+
 3. Then, download and build OrientAGraph.
 ```
 cd ..
