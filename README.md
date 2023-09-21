@@ -69,11 +69,17 @@ If you used homebrew, additionally include the flag:
 ```
 --with-boost="/opt/homebrew/Cellar/boost/1.82.0_1
 ```
-4. Update `~/.bash_profile` to contain the following lines:
+4. Update `~/.bash_profile` to include 
 ```
 export LD_LIBRARY_PATH="$HOME/gsl-2.6-local-install/lib:$LD_LIBRARY_PATH"
+```
+if you installed GSL from source.
+Additionally, include 
+```
 export PATH="$HOME/OrientAGraph/src:$PATH"
 ```
+if you want to be able to use orientagraph in any directory on your system.
+
 5. If everything has gone well, typing
 ```
 source ~/.bash_profile
