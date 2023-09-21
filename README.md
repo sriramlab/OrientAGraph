@@ -69,6 +69,7 @@ If you used homebrew, additionally include the flag:
 ```
 --with-boost="/opt/homebrew/Cellar/boost/1.82.0_1
 ```
+Note that you need to include the flag `LDFLAGS="-static"` option to the configure commands for the binaries to be compiled statically.
 4. Update `~/.bash_profile` to include 
 ```
 export LD_LIBRARY_PATH="$HOME/gsl-2.6-local-install/lib:$LD_LIBRARY_PATH"
@@ -141,7 +142,6 @@ Options added for OrientAGraph:
 -popaddorder [population list file] Order to add populations when building
     starting tree
 ```
-Note that you need to add the `LDFLAGS="-static"` option to the configure commands for the binaries to be compiled statically.
 
 Recommended Usage
 ------------
