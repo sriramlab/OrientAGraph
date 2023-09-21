@@ -32,29 +32,32 @@ make
 make check
 make install
 ```
-On Mac systems, this could alternatively be done using [homebrew](https://brew.sh): 
-```
-brew install gsl
-```
 2. After GSL is installed, export the related environmental variables.
 If GSL was installed manually using the commands above, then export:
 ```
 export INCLUDE_PATH="$HOME/gsl-2.6-local-install/include"
 export LIBRARY_PATH="$HOME/gsl-2.6-local-install/lib"
 ```
-Typically, homebrew will install GSL with the following paths:
+If you are using Mac systems, you could alternatively perform step 1 using [homebrew](https://brew.sh): 
+```
+brew install gsl
+```
+When this README was created, homebrew installed GSL with the following paths:
 ```
 export INCLUDE_PATH="/usr/local/Cellar/gsl/2.6/include"
 export LIBRARY_PATH="/usr/local/Cellar/gsl/2.6/lib"
 ```
-or
+Now it installs GSL with the following paths:
 ```
 export INCLUDE_PATH=/opt/homebrew/Cellar/gsl/2.6/include
 export LIBRARY_PATH=/opt/homebrew/Cellar/gsl/2.6/lib
 ```
-Note that you may also need to update 2.6 depending on the version installed by Homebrew.
-
-3. Then, download and build OrientAGraph.
+although note that you may also need to update 2.6 depending on the GSL version installed by Homebrew.
+As of the updating of this README, you also need to install boost when using homebrew:
+```
+brew install boost
+```
+3. Now download and build OrientAGraph.
 ```
 cd ..
 git clone https://github.com/ekmolloy/OrientAGraph.git
@@ -62,7 +65,11 @@ cd OrientAGraph
 ./configure CPPFLAGS=-I${INCLUDE_PATH} LDFLAGS=-L${LIBRARY_PATH}
 make
 ```
-4. Update `~/.base_profile` to contain the following lines:
+If you used homebrew, additionally include the flag:
+```
+--with-boost="/opt/homebrew/Cellar/boost/1.82.0_1
+```
+4. Update `~/.bash_profile` to contain the following lines:
 ```
 export LD_LIBRARY_PATH="$HOME/gsl-2.6-local-install/lib:$LD_LIBRARY_PATH"
 export PATH="$HOME/OrientAGraph/src:$PATH"
