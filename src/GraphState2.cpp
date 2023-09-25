@@ -280,8 +280,12 @@ void GraphState2::set_graph_from_file(string vfile, string efile) {
 		mig_frac = atof(line[5].c_str());  // EKM: Doesn't get used?
 		maxf = atof(line[6].c_str());      // EKM: Doesn't get used?
 
-		if ((len < 0) || (w < 0)) {
-			cerr << "ERROR: Input graph has negative branch lengths or weights!\n";
+		if (len < 0) {
+			// Note from EKM: TreeMix can produce negative branch lengths!
+			cerr << "WARNING: Input graph has negative branch lengths or weights!\n";
+		}
+		if (w < 0) {
+			cerr << "ERROR: Input graph has negative weights!\n";
 			exit(1);
 		}
 
