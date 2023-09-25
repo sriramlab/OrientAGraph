@@ -358,7 +358,7 @@ int main(int argc, char *argv[]){
     }
 
     //print the starting likelihood (after tree building)
-    likout << "Starting ln(likelihood) with "<< state.get_nmig() <<" migration events: "<< state.llik() << " \n";
+    likout << "Starting ln(likelihood) with " << state.get_nmig() << " migration events: " << state.llik() << " \n";
     if (p.dotarget)	state.target_pop();
     if (p.climb) state.iterate_all_hillclimb();
     for (int i = 0; i < p.nmig; i++){
@@ -387,8 +387,12 @@ int main(int argc, char *argv[]){
             state.iterate_mig_hillclimb_and_optimweight(add.second, current_nsum);
             // Start of addition by EKM
             if (p.domlno.find(i + 1) != p.domlno.end()) {
+                // Check that you should be doing an add
                 cout << "Performing exhaustive search for MLNO\n";
                 bool is_reoriented = state.mlno_fit_graph_mlno();
+                if (is_reoriented) {
+                    cout << "Found orientation with higher likelihood!\n";
+                }
             }
             // End of addition by EKM
     	}
@@ -399,6 +403,7 @@ int main(int argc, char *argv[]){
         state.flip_mig();
     	cout << "ln(likelihood):" << state.llik() << " \n";
     }
+
     if (p.end_mig) state.optimize_weights();
     if (p.forcemig) {
     	state.add_mig(p.mig_pops.first, p.mig_pops.second);

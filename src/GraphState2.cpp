@@ -6478,9 +6478,12 @@ bool GraphState2::mlno_find_best_orientation() {
 
 	// Define variables
 	pair<Graph::edge_iterator, Graph::edge_iterator> eiter;
-	Graph::edge_iterator ei;	
+	Graph::edge_iterator ei;
+	set<int>::iterator isi;
+
 	vector<pair<int, int> > root_einds;
 	vector<set<int> > admixture_vind_combos;  // Change to unordered set
+	set<int> admixture_vinds_orig, admixture_vinds_maxllik;
 
 	pair<bool, double> outpair;
 	double tmp_llik, max_llik;
@@ -6502,13 +6505,21 @@ bool GraphState2::mlno_find_best_orientation() {
 
 	// Transform graph from TreeMix format to binary format
 	nmig = mlno_treemix_to_binary_graph();
+	mlno_save_orientation(admixture_vinds_orig);
+	// Copy set
+	  for (isi = admixture_vinds_orig.begin(); 
+	  	   isi != admixture_vinds_orig.end(); 
+	  	   isi++) {
+		admixture_vinds_maxllik.insert(*isi);
+	}
+
 	//cout << "Transformed TreeMix to binary"; mlno_print_graph();
 
 	if (nmig == 0) {
 		cout << "ERROR in mlno_doit: No migration events found!\n";
 		exit(1);
 	}
-	
+
 	// Specify orientations by selecting admixture vertices and root edges
 	// TO DO: Remove use of indicies?? Can probably use admixture vertices if
 	// using tree_mlno?
@@ -6522,7 +6533,7 @@ bool GraphState2::mlno_find_best_orientation() {
 		for (int j = 0; j < admixture_vind_combos.size(); j++) {
 			cout << "\n";
 			cout << "Orientation " << k << " / " << total; 
-			cerr << "Orientation " << k << " / " << total << "\n";
+			// cerr << "Orientation " << k << " / " << total << "\n";
 
 			tree->copy(tree_binary);
 			k++;
@@ -6544,17 +6555,21 @@ bool GraphState2::mlno_find_best_orientation() {
 			cout << setprecision(12) << " has llik " << tmp_llik;  cout.flush();
 			if ((tmp_llik - max_llik) > 1e-8) {
 				cout << " which is higher!";  cout.flush();
-				is_reoriented = true;
 				tree_maxllik->copy(tree);
+				admixture_vinds_maxllik = admixture_vind_combos[j];
 				max_llik = tmp_llik;
+
+				// Check if actually reoriented i.e. different admixture vertices were selected
+				if (admixture_vinds_maxllik != admixture_vinds_orig) {
+					is_reoriented = true;
+				}
 			}
 		}
 	}
 
 	tree->copy(tree_maxllik);
-
+	current_llik = max_llik;
 	cout << setprecision(12) << "\nBest orientation has llik of " << current_llik << "\n";
-	
 
 	return is_reoriented;
 }
@@ -6890,6 +6905,31 @@ int GraphState2::mlno_treemix_to_binary_graph() {
 	return nmig;
 }
 
+
+void GraphState2::mlno_save_orientation(set<int> &admixture_vinds_orig) {
+	/* This functions returns the admixed vertices so that 
+	 * we can check if the graph was reoriented later.
+	 */
+	if (!tree->isbinary) {
+		cout << "ERROR in mlno_binary_to_treemix_graph: Graph is not in the correct format!\n";
+		exit(1);
+	}
+
+	pair<Graph::vertex_iterator, Graph::vertex_iterator> viter;
+	Graph::vertex_iterator vi;
+	int vind;
+
+	viter = vertices(tree->g);
+	for (vi = viter.first; vi != viter.second; ++vi) {
+		if ((in_degree(*vi, tree->g) > 1) && (out_degree(*vi, tree->g) == 1)) {
+			// cout << "  Processing migration"; mlno_print_vertex(*vi);
+			vind = tree->g[*vi].index;
+			admixture_vinds_orig.insert(vind);
+		}
+	}
+}
+
+
 void GraphState2::mlno_binary_to_treemix_graph() {
 	/* The data structure used by TreeMix is a contracted version
  	 * of a binary phylogenetic network, meaning that all edges
@@ -6927,9 +6967,9 @@ void GraphState2::mlno_binary_to_treemix_graph() {
 	// target vertices can be stacked so it's important to do
 	// this carefully)
 	viter = vertices(tree->g);
-        for (vi = viter.first; vi != viter.second; ++vi) {
+    for (vi = viter.first; vi != viter.second; ++vi) {
 		if ((in_degree(*vi, tree->g) > 1) && (out_degree(*vi, tree->g) == 1)) {
-			//cout << "  Processing migration "; mlno_print_vertex(*vi);
+			//cout << "  Processing migration"; mlno_print_vertex(*vi);
 			vvec.push_back(*vi);  // Remove outside of loop
 
 			// Process outgoing edges
