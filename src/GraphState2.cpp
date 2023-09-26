@@ -282,10 +282,10 @@ void GraphState2::set_graph_from_file(string vfile, string efile) {
 
 		if (len < 0) {
 			// Note from EKM: TreeMix can produce negative branch lengths!
-			cerr << "WARNING: Input graph has negative branch lengths or weights!\n";
+			cerr << "WARNING: Found negative branch length in input graph!\n";
 		}
 		if (w < 0) {
-			cerr << "ERROR: Input graph has negative weights!\n";
+			cerr << "ERROR: Found negative weight in input graph!\n";
 			exit(1);
 		}
 
@@ -6491,7 +6491,7 @@ bool GraphState2::mlno_find_best_orientation() {
 	bool is_treebased, is_orientable, is_reoriented;
 
 	// Store current graph and its likelihood
-	cout << setprecision(12) << "Entering mlno_doit with llik " << current_llik << "\n"; cout.flush();
+	cout << setprecision(12) << "Entering mlno_doit with llik " << current_llik; cout.flush();
 
 	// Refit graph and compute its likelihood
 	mlno_fit_graph();
@@ -7442,6 +7442,11 @@ pair<bool, pair<int, int> > GraphState2::mlno_add_mig_to_base_tree_exhaustive() 
 
 	// Evaluate the likelihood of all legal edges
 	for (int i = 0; i < vpairs.size(); i++) {
+
+		if (i % 100 == 0) {
+			cout << "Edge addition " << i << " / " << vpairs.size() << "\n";
+		}
+
 		v1 = vpairs[i].first;
 		v2 = vpairs[i].second;
 
@@ -7456,6 +7461,7 @@ pair<bool, pair<int, int> > GraphState2::mlno_add_mig_to_base_tree_exhaustive() 
 		}
 
 		if (current_llik > max_llik) {
+			//cout << " is better";
 			max_llik = current_llik;
 			max_vpair.first = v1;
 			max_vpair.second = v2;
@@ -7463,6 +7469,7 @@ pair<bool, pair<int, int> > GraphState2::mlno_add_mig_to_base_tree_exhaustive() 
 			toreturn.second.second = tree->g[v2].index;
 			toreturn.first = true;
 		}
+		//cout << "\n";
 
 		tree->remove_mig_edge(e);
 		tree->indexcounter--;
