@@ -5,7 +5,7 @@ OrientAGraph implements **Maximum Likelihood Network Orientation (MNLO)** within
 OrientAGraph can be used to find the MLNO of a user-provided graph (option: `-gf <vertex file> <edge file> -score mlno`) or incorporated into TreeMix's heursitic search for the best fitting admixture graph (option:  `-mlno` ).
 In an experimental study, we found that MLNO improved (or else did not impact) the accuracy of the original TreeMix search heuristic.
 The current implementation exhaustively searches for the MLNO, and thus, we expect it to be computationally intensive on very large admixture graphs; in this case,  MLNO could be run only after the addition of the first two admixture edges (option:  `-mlno 1,2` ).
-To learn more, check out [this example](example/README.md) and [this bioRxiv preprint](https://doi.org/10.1101/2021.02.02.429467) with Arun Durvasula and Sriram Sankararaman.
+To learn more, check out [this example](example/README.md) and [this paper](https://doi.org/10.1093/bioinformatics/btab267) with Arun Durvasula and Sriram Sankararaman.
 
 
 Acknowledgements
