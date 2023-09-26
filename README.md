@@ -88,16 +88,16 @@ orientagraph
 ```
 will produce the help message:
 ```
-OrientAGraph 1.0
+OrientAGraph 1.1
 
 OrientAGraph is built from TreeMix v1.13 Revision 231 by
 J.K. Pickrell and J.K. Pritchard and implements several new
 features, including Maximum Likelihood Network Orientation
 (MLNO), which can be used as a graph search heuristic.
 
-Contact: Erin Molloy (ekmolloy@cs.ucla.edu)
+Contact: Erin Molloy (ekmolloy@umd.edu)
 
-COMMAND:  orientagraph
+COMMAND:  ./src/orientagraph -h
 
 TreeMix Options:
 -h Display this help
@@ -141,6 +141,7 @@ Options added for OrientAGraph:
     using heuristic
 -popaddorder [population list file] Order to add populations when building
     starting tree
+-checkpoint Write checkpoint files
 ```
 
 Recommended Usage
