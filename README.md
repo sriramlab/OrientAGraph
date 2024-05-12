@@ -1,94 +1,84 @@
 OrientAGraph
 ============
 
-OrientAGraph implements **Maximum Likelihood Network Orientation (MNLO)** within [TreeMix](https://doi.org/10.1371/journal.pgen.1002967), a popular package for estimating admixture graphs from f-statistics (and related quantities).
-OrientAGraph can be used to find the MLNO of a user-provided graph (option: `-gf <vertex file> <edge file> -score mlno`) or incorporated into TreeMix's heursitic search for the best fitting admixture graph (option:  `-mlno` ).
-In an experimental study, we found that MLNO improved (or else did not impact) the accuracy of the original TreeMix search heuristic.
-The current implementation exhaustively searches for the MLNO, and thus, we expect it to be computationally intensive on very large admixture graphs; in this case,  MLNO could be run only after the addition of the first two admixture edges (option:  `-mlno 1,2` ).
-To learn more, check out [this example](example/README.md) and [this paper](https://doi.org/10.1093/bioinformatics/btab267) with Arun Durvasula and Sriram Sankararaman.
+OrientAGraph implements **Maximum Likelihood Network Orientation (MNLO)** within [TreeMix](https://doi.org/10.1371/journal.pgen.1002967), a popular package for estimating admixture graphs from f-statistics (and related quantities). In our experimental study, we found that MLNO either improved or else did not impact the accuracy of the original TreeMix search heuristic. To learn more, check out [this paper](https://doi.org/10.1093/bioinformatics/btab267) with Arun Durvasula and Sriram Sankararaman. 
+
+**Starting in version 1.2:** By default, OrientAGraph searches for the MLNO only after each of the first two admixture edges are added (equivalent to using the flag: `-mlno 1,2`). To get started, see the installation instructions below as well as [this example](example/README.md).
+
+Other Useages
+-------------
++ To execute OrientAGraph as described in our original paper, you must include the `-allmigs` and `-mlno` flags to the end of your command. These options expand the maximum likelihood search but may be prohibitively expensive for large populations!
++ Based on our experience, it is important to use the `-root <outgroup>` flag. This option roots the starting tree at the user-specified outgroup before starting the network search.
++ To determine how to set the other options, we recommend reading the [TreeMix manual](https://bitbucket.org/nygcresearch/treemix/downloads/). 
++ There are also some options specific to OrientAGraph. As an example, OrientAGraph can be used to find the MLNO of a user-provided graph (option: `-gf <vertex file> <edge file> -score mlno`).
 
 
 Acknowledgements
 ----------------
-OrientAGraph is built from the [TreeMix code](https://bitbucket.org/nygcresearch/treemix/src/master/) by J.K. Pickrell and J.K. Pritchard, and like the TreeMix code, is provided under the [GNU General Public License v3.0](LICENSE). TreeMix is presented in [Pickrell and Pritchard (2012)](https://doi.org/10.1371/journal.pgen.1002967) and in [Pickrell et al. (2012)](https://doi.org/10.1038/ncomms2140).
+OrientAGraph is built from the [TreeMix code](https://bitbucket.org/nygcresearch/treemix/src/master/) by J.K. Pickrell and J.K. Pritchard, and like the TreeMix code, is provided under the [GNU General Public License v3.0](LICENSE). 
+
+TreeMix is presented in [Pickrell and Pritchard (2012)](https://doi.org/10.1371/journal.pgen.1002967) and in [Pickrell et al. (2012)](https://doi.org/10.1038/ncomms2140).
 
 OrientAGraph implements algorithms / utilizes theoretical results from [Huber et al. (2019)](https://arxiv.org/abs/1906.07430) and [Francis and Steel (2015)](https://doi.org/10.1093/sysbio/syv037).
 
+OrientAGraph has only been tested on Mac (using Apple clang version 12.0.0) and Linux (using gcc versions 4.8.5 and 4.9.3), both with GSL version 2.6.
 
-Installation
-------------
-OrientAGraph has only been tested on Mac (using Apple clang version 12.0.0) and Linux (using gcc versions 4.8.5 and 4.9.3), both with GSL version 2.6. 
 
-1. If your system does not have GSL installed, then you will need to install it.
-This can also be done manually using the following commands:
-```
-cd $HOME
-mkdir gsl-2.6-local-install
-wget https://mirror.ibcp.fr/pub/gnu/gsl/gsl-latest.tar.gz
-tar -zxvf gsl-latest.tar.gz
-cd gsl-2.6
-./configure --prefix=$HOME/gsl-2.6-local-install
-make
-make check
-make install
-```
-2. After GSL is installed, export the related environmental variables.
-If GSL was installed manually using the commands above, then export:
-```
-export INCLUDE_PATH="$HOME/gsl-2.6-local-install/include"
-export LIBRARY_PATH="$HOME/gsl-2.6-local-install/lib"
-```
-If you are using Mac systems, you could alternatively perform step 1 using [homebrew](https://brew.sh): 
+Installation on MAC OS with [homebrew](https://brew.sh)
+-------------------------------------------------------
+
+1. Install GSL (we used version 2.7.1)
 ```
 brew install gsl
 ```
-When this README was created, homebrew installed GSL with the following paths:
+
+2. Export the path information for GSL.
 ```
-export INCLUDE_PATH="/usr/local/Cellar/gsl/2.6/include"
-export LIBRARY_PATH="/usr/local/Cellar/gsl/2.6/lib"
+GSL_VERSION=$(ls /opt/homebrew/Cellar/gsl/)
+export INCLUDE_PATH="/opt/homebrew/Cellar/gsl/${GSL_VERSION}/include"
+export LIBRARY_PATH="/opt/homebrew/Cellar/gsl/${GSL_VERSION}/lib"
 ```
-Now it installs GSL with the following paths:
+Now check if these paths are working by typing
 ```
-export INCLUDE_PATH=/opt/homebrew/Cellar/gsl/2.6/include
-export LIBRARY_PATH=/opt/homebrew/Cellar/gsl/2.6/lib
+ls $INCLUDE_PATH
 ```
-although note that you may also need to update 2.6 depending on the GSL version installed by Homebrew.
-As of the updating of this README, you also need to install boost when using homebrew:
+which should return `gsl` and typing
+```
+ls $LIBRARY_PATH
+```
+which should return `libgsl.a` among other files.
+
+3. Install BOOST (we used version 1.83.0).
 ```
 brew install boost
 ```
-3. Now download and build OrientAGraph.
+
+4. Export the path information for BOOST.
 ```
-cd ..
+BOOST_VERSION=$(ls /opt/homebrew/Cellar/boost/)
+export BOOST_PATH="/opt/homebrew/Cellar/boost/${BOOST_VERSION}"
+```
+Now check to see if these paths are working by typing
+`ls $BOOST_PATH`
+which should return `include` and `lib`, among other files.
+
+5. Now download and build OrientAGraph.
+```
 git clone https://github.com/ekmolloy/OrientAGraph.git
 cd OrientAGraph
-./configure CPPFLAGS=-I${INCLUDE_PATH} LDFLAGS=-L${LIBRARY_PATH}
+LDFLAGS="-static"
+./configure CPPFLAGS=-I${INCLUDE_PATH} LDFLAGS="-L${LIBRARY_PATH}" --with-boost="${BOOST_PATH}"
 make
 ```
-If you used homebrew, additionally include the flag:
-```
---with-boost="/opt/homebrew/Cellar/boost/1.82.0_1
-```
-Note that you need to include the flag `LDFLAGS="-static"` option to the configure commands for the binaries to be compiled statically.
-4. Update `~/.bash_profile` to include 
-```
-export LD_LIBRARY_PATH="$HOME/gsl-2.6-local-install/lib:$LD_LIBRARY_PATH"
-```
-if you installed GSL from source.
-Additionally, include 
-```
-export PATH="$HOME/OrientAGraph/src:$PATH"
-```
-if you want to be able to use orientagraph in any directory on your system.
 
-5. If everything has gone well, typing
+6. If everything has gone well, typing
 ```
 source ~/.bash_profile
 orientagraph
 ```
 will produce the help message:
 ```
-OrientAGraph 1.1
+OrientAGraph 1.2
 
 OrientAGraph is built from TreeMix v1.13 Revision 231 by
 J.K. Pickrell and J.K. Pritchard and implements several new
@@ -134,17 +124,32 @@ Options added for OrientAGraph:
     'mlno' = score each network orientation (with refitting) and return best
 -mlno [string] Comma-delimited list of integers, indicating when to run
     maximum likelihood network orientation (MLNO) as part of heuristic search
-    (e.g. '1,2' means run MLNO only after adding the first two migration edges
-    and no string means run MLNO after adding each migration edge)
+    e.g. '1,2' means run MLNO only after adding the first two migration edges (default)
+         '0' means do NOT run MLNO
+         '' (no string) means run MLNO after adding each migration edge
 -allmigs [string] Comma-delimited list of integers, indicating when to run
     evaluate all legal ways of adding migration edge to base tree instead of
-    using heuristic
+    using heuristic (similar to -mlno but default is -allmigs 0)
 -popaddorder [population list file] Order to add populations when building
     starting tree
 -checkpoint Write checkpoint files
 ```
 
-Recommended Usage
-------------
-+ To execute OrientAGraph as described in our paper, you must include the `-allmigs` and `-mlno` flags to the end of your command. These options expand the maximum likelihood search!
-+ To determine how to set the other options, we recommend reading the [TreeMix manual](https://bitbucket.org/nygcresearch/treemix/downloads/). Based on our experience, it is important to use the `-root <outgroup>` flag. This option roots the starting tree at the user-specified outgroup before starting the network search.
+You can also check the compile by typing
+```
+file src/orientagraph 
+```
+which should produce something like
+```
+src/orientagraph: Mach-O 64-bit executable arm64
+```
+
+7. To use orientagraph from any directory on your system, you can add its path to your profile. Check the path with the `pwd` command, then add the following line 
+```
+export PATH=<result of pwd>/src:$PATH"
+```
+is for the bash profile. Similar commands exist for other profiles.
+
+Installation on Linux 
+----------------------
+A similar installation can be done for linux but you will need to use apt-get (or some other tool) instead of homebrew. If you are using a Linux system, you can ask your system admin about how to access GSL and BOOST. These may already be available on your system (sometimes you can load them as `modules`).

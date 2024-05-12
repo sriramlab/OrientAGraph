@@ -14,7 +14,7 @@ string infile;
 string outstem = "TreeMix";
 
 void printv() {
-    cout << "OrientAGraph 1.0\n\n"
+    cout << "OrientAGraph 1.2\n\n"
          << "OrientAGraph is built from TreeMix v1.13 Revision 231 by\n"
          << "J.K. Pickrell and J.K. Pritchard and implements several new\n"
          << "features, including Maximum Likelihood Network Orientation\n"
@@ -58,11 +58,12 @@ void printopts() {
          << "    'mlno' = score each network orientation (with refitting) and return best\n";
     cout << "-mlno [string] Comma-delimited list of integers, indicating when to run\n"
          << "    maximum likelihood network orientation (MLNO) as part of heuristic search\n"
-         << "    (e.g. '1,2' means run MLNO only after adding the first two migration edges\n"
-         << "    and no string means run MLNO after adding each migration edge)\n";
+         << "    e.g. '1,2' means run MLNO only after adding the first two migration edges (default)\n"
+         << "         '0' means do NOT run MLNO\n"
+         << "         '' (no string) means run MLNO after adding each migration edge\n";
     cout << "-allmigs [string] Comma-delimited list of integers, indicating when to run\n"
          << "    evaluate all legal ways of adding migration edge to base tree instead of\n"
-         << "    using heuristic\n";
+         << "    using heuristic (similar to -mlno but default is -allmigs 0)\n";
     cout << "-popaddorder [population list file] Order to add populations when building\n"
          << "    starting tree\n";
     cout << "-checkpoint Write checkpoint files\n";
@@ -112,6 +113,8 @@ int main(int argc, char *argv[]){
     printv();
 
     // Start of addition by EKM
+    bool skipmlno = false;
+
     cout << "COMMAND: ";
     for (int i = 0; i < argc; i++) {
         printf(" %s", argv[i]);
@@ -243,12 +246,19 @@ int main(int argc, char *argv[]){
     }
     if (cmdline.HasSwitch("-mlno")) {
         string listofints = cmdline.GetArgument("-mlno", 0);
-        process_list_of_ints(listofints, p.domlno, p.nmig);
+        //cout << "listofints = " << listofints << "\n";
+        if (listofints.compare("0") == 0) {
+            skipmlno = true;
+        } else {
+            process_list_of_ints(listofints, p.domlno, p.nmig);
+        }
     }
     if (cmdline.HasSwitch("-allmigs")) {
         string listofints = cmdline.GetArgument("-allmigs", 0);
-        cout << "listofints = " << listofints << "\n";
-        process_list_of_ints(listofints, p.tryallmigsbt, p.nmig);
+        //cout << "listofints = " << listofints << "\n";
+        if (listofints.compare("0") != 0) {
+            process_list_of_ints(listofints, p.tryallmigsbt, p.nmig);
+        }
     }
     if (cmdline.HasSwitch("-popaddorder")) {
         p.givenpopaddorder = true;
@@ -257,6 +267,29 @@ int main(int argc, char *argv[]){
     if (cmdline.HasSwitch("-checkpoint")) {
         p.checkpoint = true;
     }
+
+    if ((p.domlno.size() == 0) and (skipmlno != true)) {
+        if (p.nmig >= 2) {
+            string listofints = "1,2";
+            process_list_of_ints(listofints, p.domlno, 2);
+        }
+        else if (p.nmig == 1) {
+            string listofints = "1";
+            process_list_of_ints(listofints, p.domlno, 1);
+        }
+    }
+    cout << "Network search will include " << p.nmig << " admixture edge additions\n";
+    std::set<int>::iterator itr;
+    cout << "Exhaustive search will be performed for the following admixture edge additions: ";
+    for (itr = p.tryallmigsbt.begin(); itr != p.tryallmigsbt.end(); itr++) {
+        cout << *itr << " ";
+    }
+    cout << "\n";
+    cout << "MLNO search will be performed after each of the following admixture edge additions: ";
+    for (itr = p.domlno.begin(); itr != p.domlno.end(); itr++) {
+        cout << *itr << " ";
+    }
+    cout << "\n";
     // End of parameters added by EKM
 
     cout.precision(8);
