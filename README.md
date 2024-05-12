@@ -166,20 +166,32 @@ BOOST_PATH="$(pwd)/install"
 ./bootstrap.sh --prefix="$BOOST_PATH"
 ./b2 install
 ```
+Check there are static libs
+```
+ls ${BOOST_PATH}/lib/*a
+```
+should return a bunch of files.
 
 2. Build and install GSL.
 ```
 wget https://ftp.gnu.org/gnu/gsl/gsl-2.7.1.tar.gz
-tar -zxvf gsl-latest.tar.gz
+tar -zxvf gsl-2.7.1.tar.gz
 cd gsl-2.7.1
 mkdir install
 GSL_PATH="$(pwd)/install"
+export INCLUDE_PATH="${GSL_PATH}/include"
+export LIBRARY_PATH="${GSL_PATH}/lib"
+./configure --prefix="$GSL_PATH" 
 make
 make check
 make install
-export INCLUDE_PATH="${GSL_PATH}/include"
-export LIBRARY_PATH="${GSL_PATH}/lib"
 ```
+Check there are static libs
+```
+ls $LIBRARY_PATH/*a
+```
+should return `libgsl.a` and `libgslcblas.a`.
+
 3. Download and build OrientAGraph
 ```
 git clone https://github.com/ekmolloy/OrientAGraph.git
