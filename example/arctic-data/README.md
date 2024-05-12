@@ -95,7 +95,7 @@ and repeat for the outputs.
 <img src="orientagraph-mlno0.png" style="width:250px;"/>
 </p>
 <p align="center">
-    <em> Left image is OrientAGraph in default mode (llik = ); Right image is OrientAGraph witout MLNO.</em>
+    <em> Left image is OrientAGraph in default mode (llik = 364.943); Right image is OrientAGraph witout MLNO (llik = 364.943).</em>
 </p>
 
 In this case, we can see that MLNO search does not improve the graph. Please keep track of this information and if you find real world examples where MLNO makes a difference, we would love to know!! Please send to ekmolloy@umd.edu
