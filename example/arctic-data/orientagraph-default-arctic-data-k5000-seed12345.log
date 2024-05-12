@@ -1,0 +1,703 @@
+OrientAGraph 1.2
+
+OrientAGraph is built from TreeMix v1.13 Revision 231 by
+J.K. Pickrell and J.K. Pritchard and implements several new
+features, including Maximum Likelihood Network Orientation
+(MLNO), which can be used as a graph search heuristic.
+
+Contact: Erin Molloy (ekmolloy@umd.edu)
+
+COMMAND:  ../../src/orientagraph -i arctic-data-k5000-seed12345.cov.gz -givenmat arctic-data-k5000-seed12345.covse.gz -root UstIshim -f2 -m 4 -seed 12345 -o orientagraph-default-arctic-data-k5000-seed12345
+
+Network search will include 4 admixture edge additions
+Exhaustive search will be performed for the following admixture edge additions: 
+MLNO search will be performed after each of the following admixture edge additions: 1 2 
+SEED: 12345
+Starting from
+(Koryak:0.0130337,(UstIshim:0.0096575,Malta:0.115694):0.0130337);
+Adding Han [4/12]
+ln(likelihood): 30.793251 
+((UstIshim:0.00797382,Malta:0.117377):0.00518771,(Koryak:0.0156921,Han:0.00547872):0.00518771);
+Adding Anzick [5/12]
+ln(likelihood): 43.4231 
+(((Koryak:0.0148513,Han:0.0063195):0.00326526,Anzick:0.0157661):0.00355508,(UstIshim:0.0094693,Malta:0.115882):0.00355508);
+Adding Saqqaq [6/12]
+ln(likelihood): 70.822224 
+((Anzick:0.0154946,(UstIshim:0.0096187,Malta:0.115732):0.00738165):0.00161343,(Han:0.0062674,(Koryak:0.0110336,Saqqaq:0.0283417):0.00379165):0.00161343);
+Adding USR1 [7/12]
+ln(likelihood): 96.461682 
+(((Anzick:0.0118357,USR1:0.0119321):0.00365092,(Han:0.00664406,(Koryak:0.0111232,Saqqaq:0.0282521):0.00341499):0.00339209):0.00367099,(UstIshim:0.0104014,Malta:0.11495):0.00367099);
+Adding Yoruba [8/12]
+ln(likelihood): 127.20451 
+((UstIshim:0.00529133,Yoruba:0.0402802):0.00269267,(Malta:0.115362,((Anzick:0.0120118,USR1:0.011756):0.00439684,(Han:0.006024,(Koryak:0.0111007,Saqqaq:0.0282746):0.00403504):0.00243949):0.00707831):0.00269267);
+Adding Athabascan [9/12]
+ln(likelihood): 160.24856 
+((UstIshim:0.00528859,Yoruba:0.0402829):0.00287678,(Malta:0.114994,((USR1:0.0122932,(Anzick:0.00824326,Athabascan:0.00824474):0.00415229):0.00385964,(Han:0.00640962,(Koryak:0.0109296,Saqqaq:0.0284457):0.00364943):0.00207074):0.00745286):0.00287678);
+Adding Greenlander [10/12]
+ln(likelihood): 177.23688 
+((UstIshim:0.0053358,Yoruba:0.0402357):0.00291446,(Malta:0.114919,(((Koryak:0.0110792,Saqqaq:0.0282961):0.0038638,((USR1:0.0127371,(Anzick:0.00845356,Athabascan:0.00803444):0.0037083):0.0026781,Greenlander:0.00895275):0.000880671):0.00247769,Han:0.00711083):0.00671598):0.00291446);
+Adding Aymara [11/12]
+ln(likelihood): 229.29498 
+((Yoruba:0.0401608,(Malta:0.114655,(((Koryak:0.010932,Saqqaq:0.0284433):0.00401084,((USR1:0.0126281,(Athabascan:0.00785337,(Anzick:0.00385794,Aymara:0.010262):0.00445478):0.00380761):0.00264204,Greenlander:0.00874962):0.00113281):0.00236676,Han:0.00718305):0.00655584):0.0060927):0.00270537,UstIshim:0.00270537);
+Adding Ket [12/12]
+ln(likelihood): 287.4858 
+((Yoruba:0.0401204,(Malta:0.114667,((((Koryak:0.0109373,Saqqaq:0.028438):0.00370016,((USR1:0.0125954,(Athabascan:0.00786173,(Anzick:0.00390083,Aymara:0.0102191):0.00444642):0.00384307):0.00250104,Greenlander:0.00887428):0.00151829):0.00199653,Han:0.00742012):0.00132757,Ket:0.00831294):0.0054099):0.00608121):0.00272557,UstIshim:0.00272557);
+Set root above UstIshim
+Performing targeted search to add migration edge to base tree
+Targeting migration to vicinity of:
+Saqqaq Greenlander
+Malta USR1
+Malta Anzick
+Han Yoruba
+
+Koryak Ket
+Han UstIshim
+Han Yoruba
+Saqqaq Ket
+Malta Anzick
+Malta USR1
+Malta Athabascan
+Malta Aymara
+Yoruba USR1
+Malta Anzick
+Malta USR1
+Malta Athabascan
+Malta Aymara
+Yoruba USR1
+Koryak Han
+Koryak Greenlander
+Han Koryak
+Han Saqqaq
+Saqqaq Han
+Saqqaq Greenlander
+Greenlander Koryak
+Greenlander Saqqaq
+Greenlander Athabascan
+Trying Greenlander Athabascan
+Greenlander:0.00887428 Athabascan:0.00786173
+1->2 0.27863264 295.30957 287.4858
+2->1 0.23189746 298.51151 295.30957
+p1->2 0.45069143 288.93632 298.51151
+p2->1 0.23609361 293.18174 298.51151
+Greenlander:0.0172243 ((Anzick:0.00390083,Aymara:0.0102191):0.00429806,Athabascan:0.00774305):0.00426988
+1->2 0.3970964 296.35019 298.51151
+p1->2 0.1 287.4858 298.51151
+Trying Greenlander Koryak
+Greenlander:0.00887428 (Koryak:0.0109373,Saqqaq:0.028438):0.00370015
+1->2 0.33104092 306.85471 298.51151
+2->1 0.4633902 303.23206 306.85471
+p2->1 4.0751289e-05 287.4858 306.85471
+Greenlander:0.00887507 Koryak:0.0109373
+1->2 0.17544913 292.3108 306.85471
+2->1 0.34760514 301.09526 306.85471
+p1->2 0.56512684 287.69713 306.85471
+Trying Greenlander Saqqaq
+Greenlander:0.00887428 Saqqaq:0.0233025
+1->2 0.23909691 294.00862 306.85471
+2->1 0.39270377 306.15608 306.85471
+p1->2 4.0751289e-05 287.4858 306.85471
+Greenlander:0.00887428 (Koryak:0.0109371,Saqqaq:0.0284405):0.00370031
+Trying Han Koryak
+Han:0.00742012 (Koryak:0.0109371,Saqqaq:0.0284405):0.00370031
+1->2 0.27573377 296.62614 306.85471
+2->1 0.29209247 294.25745 306.85471
+p1->2 4.0751289e-05 287.4858 306.85471
+Han:0.00742012 Koryak:0.0109373
+1->2 0.14892361 289.50146 306.85471
+2->1 0.25898865 294.1388 306.85471
+p1->2 6.2255936e-07 287.4858 306.85471
+Trying Han Saqqaq
+Han:0.00742012 Saqqaq:0.028438
+1->2 0.20999919 291.05735 306.85471
+2->1 0.41738233 295.20629 306.85471
+p1->2 0.19933699 287.72676 306.85471
+Han:0.00742615 (Koryak:0.00974281,Saqqaq:0.0457848):0.00489628
+Trying Han UstIshim
+Han:0.00742615 UstIshim:0.00272557
+1->2 0.22211345 292.246 306.85471
+2->1 0.16687003 296.66512 306.85471
+p1->2 3.0968394e-07 287.4858 306.85471
+Trying Han Yoruba
+Han:0.00742012 Yoruba:0.0401204
+1->2 0.23227368 290.9249 306.85471
+2->1 0.16109863 295.77643 306.85471
+p1->2 0.14470783 287.67557 306.85471
+p2->1 0.16687003 296.66512 306.85471
+Trying Koryak Greenlander
+(Koryak:0.0109373,Saqqaq:0.028438):0.00370016 Greenlander:0.00887428
+Koryak:0.0109373 Greenlander:0.00887428
+Trying Koryak Han
+(Koryak:0.0109373,Saqqaq:0.028438):0.00370016 Han:0.0127371
+Koryak:0.0109373 Han:0.0127371
+Trying Koryak Ket
+(Koryak:0.0109373,Saqqaq:0.028438):0.00370016 Ket:0.00805234
+1->2 0.30537301 292.10158 306.85471
+2->1 0.11927793 289.99427 306.85471
+p1->2 0.36328083 288.36309 306.85471
+p2->1 5.6427712e-07 287.4858 306.85471
+Koryak:0.0109373 Ket:0.00831294
+1->2 0.30392587 291.97136 306.85471
+2->1 0.064395815 288.27372 306.85471
+p2->1 5.6427712e-07 287.4858 306.85471
+Trying Malta Anzick
+Malta:0.114667 Anzick:0.00390083
+1->2 0.024779787 292.99906 306.85471
+2->1 0.2975018 309.59927 306.85471
+p1->2 0.0821862 289.29069 309.59927
+p2->1 0.34006789 310.44242 309.59927
+Malta:0.270903 (USR1:0.0122391,(Athabascan:0.00790592,(Aymara:0.0102191,Anzick:0.00390083):0.0045591):0.00358146):0.00308294
+1->2 0.18584217 323.58916 310.44242
+2->1 0.41106877 309.4467 323.58916
+p1->2 0.31835186 312.26257 323.58916
+p2->1 0.43107757 302.68422 323.58916
+Malta:0.36603 (Athabascan:0.00786173,(Aymara:0.0102191,Anzick:0.00390083):0.00444642):0.00384307
+1->2 0.021853402 299.89801 323.58916
+2->1 0.37269714 310.38868 323.58916
+p1->2 0.06987533 288.7664 323.58916
+Malta:0.114628 (Aymara:0.0102191,Anzick:0.00390083):0.00444642
+1->2 0.020872409 297.03671 323.58916
+p1->2 0.093406156 289.959 323.58916
+Trying Malta Athabascan
+Malta:0.114638 (USR1:0.0121016,(Athabascan:0.00673559,(Aymara:0.0102191,Anzick:0.00390082):0.0065867):0.00460993):0.0027828
+Malta:0.114638 Athabascan:0.00673559
+1->2 0.0092501771 288.68536 323.58916
+2->1 0.35612994 310.30642 323.58916
+p1->2 3.8719494e-07 287.4858 323.58916
+Malta:0.114667 ((Aymara:0.0102191,Anzick:0.00390083):0.00444642,Athabascan:0.00786174):0.00384308
+Trying Malta Aymara
+Malta:0.114667 (USR1:0.0125954,((Aymara:0.0102191,Anzick:0.00390083):0.00444642,Athabascan:0.00786174):0.00384308):0.00250104
+Malta:0.114667 ((Aymara:0.0102191,Anzick:0.00390083):0.00444642,Athabascan:0.00786174):0.00384308
+Malta:0.114667 Aymara:0.0102191
+1->2 0.014959938 290.27225 323.58916
+2->1 0.2975018 309.59927 323.58916
+p1->2 0.01468581 287.5423 323.58916
+Malta:0.114664 (Anzick:0.00369005,Aymara:0.0107383):0.00459524
+Trying Malta USR1
+Malta:0.114664 USR1:0.0125582
+1->2 0.28485325 305.98267 323.58916
+2->1 0.37677085 314.00545 323.58916
+p1->2 0.33995607 304.01956 323.58916
+Malta:0.114775 (((Anzick:0.00390083,Aymara:0.0102191):0.00435405,Athabascan:0.00778784):0,USR1:0.0337611):0.00594345
+Trying Saqqaq Greenlander
+Saqqaq:0.028438 Greenlander:0.00827561
+(Saqqaq:0.028438,Koryak:0.0109373):0.00324667 Greenlander:0.00827561
+Trying Saqqaq Han
+Saqqaq:0.028438 Han:0.00716141
+(Saqqaq:0.028438,Koryak:0.0109373):0.00324667 Han:0.00716141
+Trying Saqqaq Ket
+Saqqaq:0.028438 Ket:0.00808461
+1->2 0.3031387 292.02299 323.58916
+2->1 0.072745554 288.1014 323.58916
+p2->1 5.6427712e-07 287.4858 323.58916
+(Koryak:0.0109373,Saqqaq:0.0284381):0.00370016 Ket:0.00831294
+Trying Yoruba USR1
+Yoruba:0.0401204 USR1:0.0125954
+1->2 0.22211345 299.16454 323.58916
+2->1 0.047051974 287.88768 323.58916
+p1->2 0.21867786 299.16194 323.58916
+p2->1 3.0968394e-07 287.4858 323.58916
+Migration edge #1 added
+Local updates around node 1: 0 ln(lk):323.58916 
+Local updates around node 2: 0 ln(lk):323.58916 
+Updates in migration position: 0 ln(lk):323.58916 
+Switches in migration direction: 0 ln(lk):323.58916 
+Performing exhaustive search for MLNO
+Entering mlno_doit with llik 323.589158022
+Orientation 1 / 12 root edge = 8 -> 3 admixture vertices = { 0 } is valid is treebased has llik 262.826759412
+Orientation 2 / 12 root edge = 8 -> 3 admixture vertices = { 2 }
+Orientation 3 / 12 root edge = 8 -> 3 admixture vertices = { 6 } is valid is treebased has llik 276.686972834
+Orientation 4 / 12 root edge = 8 -> 3 admixture vertices = { 10 }
+Orientation 5 / 12 root edge = 8 -> 3 admixture vertices = { 12 }
+Orientation 6 / 12 root edge = 8 -> 3 admixture vertices = { 14 }
+Orientation 7 / 12 root edge = 8 -> 3 admixture vertices = { 16 }
+Orientation 8 / 12 root edge = 8 -> 3 admixture vertices = { 18 } is valid is treebased has llik 241.427612536
+Orientation 9 / 12 root edge = 8 -> 3 admixture vertices = { 20 }
+Orientation 10 / 12 root edge = 8 -> 3 admixture vertices = { 22 } is valid is treebased has llik 267.416428958
+Orientation 11 / 12 root edge = 8 -> 3 admixture vertices = { 65 } is valid is treebased has llik 309.44670424
+Orientation 12 / 12 root edge = 8 -> 3 admixture vertices = { 66 } is valid is treebased has llik 323.589158022
+Best orientation has llik of 323.589158022
+ln(likelihood):323.589156576 
+Performing targeted search to add migration edge to base tree
+Targeting migration to vicinity of:
+Han Yoruba
+UstIshim Han
+Athabascan Greenlander
+Malta Greenlander
+
+Anzick USR1
+Athabascan Koryak
+Athabascan Greenlander
+Greenlander Saqqaq
+Greenlander Athabascan
+Malta Ket
+Han UstIshim
+Han Yoruba
+Greenlander Malta
+Ket Malta
+UstIshim Han
+Malta USR1
+Malta Greenlander
+Han Saqqaq
+Yoruba Han
+Yoruba USR1
+Ket USR1
+UstIshim Han
+Malta Greenlander
+Malta Ket
+Yoruba Han
+Trying Anzick USR1
+Anzick:0.00390083 USR1:0.0125954
+1->2 0.236710190773 325.14539177 323.589156576
+2->1 0.0643133595586 324.496452263 325.14539177
+p1->2 0.269259154797 325.001435225 325.14539177
+p2->1 3.90846338405e-07 323.589155235 325.14539177
+(Aymara:0.0102191,Anzick:0.00390083):0.00444642 USR1:0.0125954
+2->1 0.179482623935 325.001435154 325.14539177
+p2->1 0.000950402754825 323.589186506 325.14539177
+Trying Athabascan Greenlander
+Athabascan:0.00785944 Greenlander:0.0067093
+1->2 0.306375205517 337.596398563 325.14539177
+2->1 0.286411672831 332.861592349 337.596398563
+p1->2 0.299100458622 332.359612452 337.596398563
+p2->1 0.427532672882 330.67508393 337.596398563
+((Aymara:0.0100913,Anzick:0.00377303):0,Athabascan:0.0312116):0.00809556 Greenlander:0.00690342
+2->1 0.270249664783 334.615429217 337.596398563
+p2->1 0.364257961512 328.532228161 337.596398563
+Trying Athabascan Koryak
+Athabascan:0.00786173 Koryak:0.0109373
+1->2 6.22559355179e-07 323.589157175 337.596398563
+2->1 0.0414648316801 324.151150474 337.596398563
+p1->2 3.87194944551e-07 323.58915339 337.596398563
+p2->1 0.161846935749 324.630261296 337.596398563
+Trying Greenlander Athabascan
+Greenlander:0.00670103 Athabascan:0.0129699
+Greenlander:0.00670103 ((Aymara:0.0102191,Anzick:0.00390083):0.00288353,Athabascan:0.0129699):0.00518245
+Trying Greenlander Malta
+Greenlander:0.00670103 Malta:0.116101
+1->2 0.104971379042 325.288394473 337.596398563
+2->1 0.0172721706331 327.645996568 337.596398563
+p1->2 0.0727455541492 323.888707928 337.596398563
+p2->1 0.0470519736409 323.959216431 337.596398563
+Trying Greenlander Saqqaq
+Greenlander:0.00788042 (Saqqaq:0.028438,Koryak:0.0109373):0.0017183
+1->2 0.302757978439 328.264217063 337.596398563
+2->1 0.443737089634 328.798467452 337.596398563
+p2->1 0.10000000149 323.589157048 337.596398563
+Greenlander:0.00863303 Saqqaq:0.028438
+1->2 0.145555377007 325.490258299 337.596398563
+2->1 0.526405215263 329.774034589 337.596398563
+p1->2 4.07512889069e-05 323.589156035 337.596398563
+Trying Han Saqqaq
+Han:0.0061776 (Koryak:0.0109372,Saqqaq:0.0284404):0.00185285
+1->2 0.30197250843 325.70058342 337.596398563
+2->1 0.395966857672 325.699975827 337.596398563
+p1->2 4.07512889069e-05 323.589155158 337.596398563
+Han:0.0061776 Saqqaq:0.028438
+1->2 0.106138110161 324.394324764 337.596398563
+2->1 0.381712704897 325.862630397 337.596398563
+p1->2 0.0732307136059 323.642135835 337.596398563
+Trying Han UstIshim
+Han:0.00617803 UstIshim:0.00272557
+1->2 0.210215702653 327.779692783 337.596398563
+2->1 0.214348524809 336.290687507 337.596398563
+p1->2 0.036974824965 323.614876273 337.596398563
+Trying Han Yoruba
+Han:0.00617674 Yoruba:0.0396626
+1->2 0.215060383081 326.63255389 337.596398563
+2->1 0.250425159931 335.907450519 337.596398563
+p1->2 0.123174011707 323.879508574 337.596398563
+p2->1 0.214348524809 336.290687516 337.596398563
+Trying Ket Malta
+Ket:0.00677101 Malta:0.115852
+1->2 0.0433140099049 323.676763463 337.596398563
+2->1 0.158870503306 327.259566417 337.596398563
+p1->2 0.10000000149 323.589156716 337.596398563
+p2->1 0.267150193453 323.747997339 337.596398563
+Trying Ket USR1
+Ket:0.0163198 (USR1:0.0125954,((Aymara:0.0102191,Anzick:0.00390083):0.00444642,Athabascan:0.00786173):0.00384307):0.00538362
+1->2 0.132225394249 329.228506221 337.596398563
+2->1 0.155766993761 328.706699494 337.596398563
+p1->2 0.223662316799 327.256486908 337.596398563
+p2->1 0.569545686245 330.054326309 337.596398563
+Ket:0.0522091 USR1:0.0125954
+1->2 0.10000000149 328.0347185 337.596398563
+2->1 0.198120817542 330.179345714 337.596398563
+p1->2 0.342146903276 333.847043567 337.596398563
+Trying Malta Greenlander
+Malta:0.115997 Greenlander:0.00601955
+Trying Malta Ket
+Malta:0.115997 Ket:0.00708842
+Trying Malta USR1
+Malta:0.115997 USR1:0.0338047
+1->2 0.16985231638 331.217462304 337.596398563
+2->1 0.107924461365 325.721252348 337.596398563
+p1->2 0.262183248997 332.403237759 337.596398563
+p2->1 0.0727455541492 323.888707928 337.596398563
+Trying UstIshim Han
+UstIshim:0.00272557 Han:0.00604785
+Trying Yoruba Han
+Yoruba:0.0401204 Han:0.00604785
+Trying Yoruba USR1
+Yoruba:0.0401204 USR1:0.0125954
+1->2 0.159718617797 329.633606785 337.596398563
+2->1 0.00741526018828 323.599481216 337.596398563
+p1->2 0.159718617797 329.633606785 337.596398563
+p2->1 3.09683940714e-07 323.589154956 337.596398563
+Migration edge #2 added
+Local updates around node 1: 1 ln(lk):346.254836433 
+Local updates around node 2: 1 ln(lk):349.167943745 
+Updates in migration position: 0 ln(lk):349.167943745 
+Switches in migration direction: 0 ln(lk):349.167943745 
+Local updates around node 1: 0 ln(lk):349.167943745 
+Local updates around node 2: 0 ln(lk):349.167943745 
+Switches in migration direction: 0 ln(lk):349.167943745 
+Updates in migration position: 0 ln(lk):349.167943745 
+Trying all local rearrangements
+Local rearrangements: 0 ln(lk):349.167943745 
+Performing exhaustive search for MLNO
+Entering mlno_doit with llik 349.167943745
+Orientation 1 / 91 root edge = 8 -> 3 admixture vertices = { 0 2 }
+Orientation 2 / 91 root edge = 8 -> 3 admixture vertices = { 0 6 } is valid is treebased has llik 175.243670777
+Orientation 3 / 91 root edge = 8 -> 3 admixture vertices = { 0 10 } is valid is treebased has llik 216.454895916
+Orientation 4 / 91 root edge = 8 -> 3 admixture vertices = { 0 12 } is valid is treebased has llik 267.107838233
+Orientation 5 / 91 root edge = 8 -> 3 admixture vertices = { 0 14 }
+Orientation 6 / 91 root edge = 8 -> 3 admixture vertices = { 0 16 } is valid is treebased has llik 254.347797263
+Orientation 7 / 91 root edge = 8 -> 3 admixture vertices = { 0 18 } is valid is treebased has llik 175.615526367
+Orientation 8 / 91 root edge = 8 -> 3 admixture vertices = { 0 20 }
+Orientation 9 / 91 root edge = 8 -> 3 admixture vertices = { 0 22 }
+Orientation 10 / 91 root edge = 8 -> 3 admixture vertices = { 0 65 }
+Orientation 11 / 91 root edge = 8 -> 3 admixture vertices = { 0 72 } is valid is treebased has llik 269.465346671
+Orientation 12 / 91 root edge = 8 -> 3 admixture vertices = { 0 73 }
+Orientation 13 / 91 root edge = 8 -> 3 admixture vertices = { 0 74 } is valid is treebased has llik 298.852502028
+Orientation 14 / 91 root edge = 8 -> 3 admixture vertices = { 2 6 }
+Orientation 15 / 91 root edge = 8 -> 3 admixture vertices = { 2 10 }
+Orientation 16 / 91 root edge = 8 -> 3 admixture vertices = { 2 12 }
+Orientation 17 / 91 root edge = 8 -> 3 admixture vertices = { 2 14 }
+Orientation 18 / 91 root edge = 8 -> 3 admixture vertices = { 2 16 }
+Orientation 19 / 91 root edge = 8 -> 3 admixture vertices = { 2 18 }
+Orientation 20 / 91 root edge = 8 -> 3 admixture vertices = { 2 20 }
+Orientation 21 / 91 root edge = 8 -> 3 admixture vertices = { 2 22 }
+Orientation 22 / 91 root edge = 8 -> 3 admixture vertices = { 2 65 }
+Orientation 23 / 91 root edge = 8 -> 3 admixture vertices = { 2 72 }
+Orientation 24 / 91 root edge = 8 -> 3 admixture vertices = { 2 73 }
+Orientation 25 / 91 root edge = 8 -> 3 admixture vertices = { 2 74 }
+Orientation 26 / 91 root edge = 8 -> 3 admixture vertices = { 6 10 } is valid is treebased has llik 205.445853254
+Orientation 27 / 91 root edge = 8 -> 3 admixture vertices = { 6 12 } is valid is treebased has llik 297.421303004
+Orientation 28 / 91 root edge = 8 -> 3 admixture vertices = { 6 14 }
+Orientation 29 / 91 root edge = 8 -> 3 admixture vertices = { 6 16 } is valid is treebased has llik 265.784354714
+Orientation 30 / 91 root edge = 8 -> 3 admixture vertices = { 6 18 } is valid is treebased has llik 167.09608212
+Orientation 31 / 91 root edge = 8 -> 3 admixture vertices = { 6 20 }
+Orientation 32 / 91 root edge = 8 -> 3 admixture vertices = { 6 22 } is valid is treebased has llik 250.115439642
+Orientation 33 / 91 root edge = 8 -> 3 admixture vertices = { 6 65 }
+Orientation 34 / 91 root edge = 8 -> 3 admixture vertices = { 6 72 } is valid is treebased has llik 263.498615382
+Orientation 35 / 91 root edge = 8 -> 3 admixture vertices = { 6 73 }
+Orientation 36 / 91 root edge = 8 -> 3 admixture vertices = { 6 74 } is valid is treebased has llik 290.783144052
+Orientation 37 / 91 root edge = 8 -> 3 admixture vertices = { 10 12 }
+Orientation 38 / 91 root edge = 8 -> 3 admixture vertices = { 10 14 }
+Orientation 39 / 91 root edge = 8 -> 3 admixture vertices = { 10 16 }
+Orientation 40 / 91 root edge = 8 -> 3 admixture vertices = { 10 18 }
+Orientation 41 / 91 root edge = 8 -> 3 admixture vertices = { 10 20 }
+Orientation 42 / 91 root edge = 8 -> 3 admixture vertices = { 10 22 } is valid is treebased has llik 239.592980963
+Orientation 43 / 91 root edge = 8 -> 3 admixture vertices = { 10 65 } is valid is treebased has llik 252.523594801
+Orientation 44 / 91 root edge = 8 -> 3 admixture vertices = { 10 72 }
+Orientation 45 / 91 root edge = 8 -> 3 admixture vertices = { 10 73 } is valid is treebased has llik 263.706727798
+Orientation 46 / 91 root edge = 8 -> 3 admixture vertices = { 10 74 }
+Orientation 47 / 91 root edge = 8 -> 3 admixture vertices = { 12 14 }
+Orientation 48 / 91 root edge = 8 -> 3 admixture vertices = { 12 16 }
+Orientation 49 / 91 root edge = 8 -> 3 admixture vertices = { 12 18 }
+Orientation 50 / 91 root edge = 8 -> 3 admixture vertices = { 12 20 }
+Orientation 51 / 91 root edge = 8 -> 3 admixture vertices = { 12 22 } is valid is treebased has llik 296.255950787
+Orientation 52 / 91 root edge = 8 -> 3 admixture vertices = { 12 65 } is valid is treebased has llik 297.933906041
+Orientation 53 / 91 root edge = 8 -> 3 admixture vertices = { 12 72 }
+Orientation 54 / 91 root edge = 8 -> 3 admixture vertices = { 12 73 } is valid is treebased has llik 299.151213623
+Orientation 55 / 91 root edge = 8 -> 3 admixture vertices = { 12 74 }
+Orientation 56 / 91 root edge = 8 -> 3 admixture vertices = { 14 16 }
+Orientation 57 / 91 root edge = 8 -> 3 admixture vertices = { 14 18 }
+Orientation 58 / 91 root edge = 8 -> 3 admixture vertices = { 14 20 }
+Orientation 59 / 91 root edge = 8 -> 3 admixture vertices = { 14 22 }
+Orientation 60 / 91 root edge = 8 -> 3 admixture vertices = { 14 65 }
+Orientation 61 / 91 root edge = 8 -> 3 admixture vertices = { 14 72 }
+Orientation 62 / 91 root edge = 8 -> 3 admixture vertices = { 14 73 }
+Orientation 63 / 91 root edge = 8 -> 3 admixture vertices = { 14 74 }
+Orientation 64 / 91 root edge = 8 -> 3 admixture vertices = { 16 18 }
+Orientation 65 / 91 root edge = 8 -> 3 admixture vertices = { 16 20 }
+Orientation 66 / 91 root edge = 8 -> 3 admixture vertices = { 16 22 } is valid is treebased has llik 277.436222633
+Orientation 67 / 91 root edge = 8 -> 3 admixture vertices = { 16 65 } is valid is treebased has llik 295.352439073
+Orientation 68 / 91 root edge = 8 -> 3 admixture vertices = { 16 72 }
+Orientation 69 / 91 root edge = 8 -> 3 admixture vertices = { 16 73 } is valid is treebased has llik 295.094549961
+Orientation 70 / 91 root edge = 8 -> 3 admixture vertices = { 16 74 }
+Orientation 71 / 91 root edge = 8 -> 3 admixture vertices = { 18 20 }
+Orientation 72 / 91 root edge = 8 -> 3 admixture vertices = { 18 22 } is valid is treebased has llik 199.765920362
+Orientation 73 / 91 root edge = 8 -> 3 admixture vertices = { 18 65 } is valid is treebased has llik 209.542802205
+Orientation 74 / 91 root edge = 8 -> 3 admixture vertices = { 18 72 }
+Orientation 75 / 91 root edge = 8 -> 3 admixture vertices = { 18 73 } is valid is treebased has llik 214.83152517
+Orientation 76 / 91 root edge = 8 -> 3 admixture vertices = { 18 74 }
+Orientation 77 / 91 root edge = 8 -> 3 admixture vertices = { 20 22 }
+Orientation 78 / 91 root edge = 8 -> 3 admixture vertices = { 20 65 }
+Orientation 79 / 91 root edge = 8 -> 3 admixture vertices = { 20 72 }
+Orientation 80 / 91 root edge = 8 -> 3 admixture vertices = { 20 73 }
+Orientation 81 / 91 root edge = 8 -> 3 admixture vertices = { 20 74 }
+Orientation 82 / 91 root edge = 8 -> 3 admixture vertices = { 22 65 }
+Orientation 83 / 91 root edge = 8 -> 3 admixture vertices = { 22 72 } is valid is treebased has llik 284.398577599
+Orientation 84 / 91 root edge = 8 -> 3 admixture vertices = { 22 73 }
+Orientation 85 / 91 root edge = 8 -> 3 admixture vertices = { 22 74 } is valid is treebased has llik 325.379294426
+Orientation 86 / 91 root edge = 8 -> 3 admixture vertices = { 65 72 } is valid is treebased has llik 311.386230113
+Orientation 87 / 91 root edge = 8 -> 3 admixture vertices = { 65 73 } is valid is treebased has llik 296.295348993
+Orientation 88 / 91 root edge = 8 -> 3 admixture vertices = { 65 74 } is valid is treebased has llik 340.514152605
+Orientation 89 / 91 root edge = 8 -> 3 admixture vertices = { 72 73 } is valid is treebased has llik 317.014347223
+Orientation 90 / 91 root edge = 8 -> 3 admixture vertices = { 72 74 }
+Orientation 91 / 91 root edge = 8 -> 3 admixture vertices = { 73 74 } is valid is treebased has llik 349.167944495 which is higher!
+Best orientation has llik of 349.167944495
+Flipping migration edge
+ln(likelihood):349.16794429 
+Performing targeted search to add migration edge to base tree
+Targeting migration to vicinity of:
+Han Yoruba
+UstIshim Han
+Malta Ket
+Koryak Athabascan
+
+Malta Ket
+Han UstIshim
+Han Yoruba
+USR1 Malta
+USR1 Yoruba
+Ket Malta
+Koryak Athabascan
+Koryak Aymara
+USR1 Anzick
+UstIshim Han
+Malta Ket
+Han Yoruba
+Yoruba Han
+Ket Malta
+UstIshim Han
+Malta USR1
+Malta Ket
+Yoruba Han
+Yoruba USR1
+Trying Han UstIshim
+Han:0.00645147 UstIshim:0.00272557
+1->2 0.193360075355 352.763115549 349.16794429
+2->1 0.174463063478 359.60015648 352.763115549
+p1->2 0.00141885795165 349.167987334 359.60015648
+Trying Han Yoruba
+Han:0.00645144 Yoruba:0.0401037
+1->2 0.204338699579 352.085713444 359.60015648
+2->1 0.181116193533 359.073826298 359.60015648
+p1->2 0.113968722522 349.463761964 359.60015648
+p2->1 0.174463063478 359.600156475 359.60015648
+Trying Ket Malta
+Ket:0.00704504 Malta:0.116336
+1->2 0.227753639221 351.237742166 359.60015648
+2->1 0.0532250739634 352.709423523 359.60015648
+p1->2 3.90846338405e-07 349.167944132 359.60015648
+p2->1 0.0200751256198 349.170002397 359.60015648
+Trying Koryak Athabascan
+Koryak:0.0105954 Athabascan:0.00801009
+1->2 0.0966344028711 352.362983834 359.60015648
+2->1 0.0821861997247 351.243778176 359.60015648
+p1->2 0.142409846187 351.441423352 359.60015648
+p2->1 0.0805154070258 350.032099821 359.60015648
+Trying Koryak Aymara
+Koryak:0.0133056 Aymara:0.0102191
+1->2 0.00527530163527 349.176836853 359.60015648
+2->1 0.0302356537431 349.595560204 359.60015648
+p1->2 5.642771157e-07 349.16794321 359.60015648
+p2->1 0.0805154070258 350.035427486 359.60015648
+Trying Malta Ket
+Malta:0.116551 Ket:0.00723796
+Trying Malta USR1
+Malta:0.116551 USR1:0.0123376
+1->2 0.0325434207916 350.371247534 359.60015648
+2->1 0.0576922148466 349.490008186 359.60015648
+p1->2 0.12932433188 350.640904246 359.60015648
+p2->1 3.30261940462e-07 349.167942454 359.60015648
+Trying USR1 Anzick
+USR1:0.0124013 (Anzick:0.00390083,Aymara:0.0102191):0.00427921
+1->2 0.179482623935 350.302851032 359.60015648
+2->1 0.399193555117 350.302850233 359.60015648
+p1->2 0.0541790276766 349.226498239 359.60015648
+USR1:0.012433 Anzick:0.00390083
+1->2 0.0692132115364 350.052100799 359.60015648
+2->1 0.209865450859 350.424309252 359.60015648
+p1->2 0.00170058105141 349.16801455 359.60015648
+Trying USR1 Malta
+USR1:0.0124018 Malta:0.116482
+Trying USR1 Yoruba
+USR1:0.0124018 Yoruba:0.0401204
+1->2 0.0246932953596 349.277799256 359.60015648
+2->1 0.0753190666437 350.268305642 359.60015648
+p1->2 3.09683940714e-07 349.167944187 359.60015648
+p2->1 0.0799238979816 350.284999937 359.60015648
+Trying UstIshim Han
+UstIshim:0.00273529 Han:0.00634769
+Trying Yoruba Han
+Yoruba:0.0401398 Han:0.00634769
+Trying Yoruba USR1
+Yoruba:0.0401398 USR1:0.0155168
+Migration edge #3 added
+Local updates around node 1: 0 ln(lk):359.60015648 
+Local updates around node 2: 1 ln(lk):361.650795356 
+Updates in migration position: 0 ln(lk):361.650795356 
+Switches in migration direction: 0 ln(lk):361.650795356 
+Local updates around node 1: 0 ln(lk):361.650795356 
+Local updates around node 2: 0 ln(lk):361.650795356 
+Switches in migration direction: 0 ln(lk):361.650795356 
+Updates in migration position: 0 ln(lk):361.650795356 
+Trying all local rearrangements
+Local rearrangements: 0 ln(lk):361.650795356 
+ln(likelihood):361.683755086 
+Performing targeted search to add migration edge to base tree
+Targeting migration to vicinity of:
+Han Yoruba
+Koryak Athabascan
+Malta Ket
+USR1 Yoruba
+
+Han Yoruba
+USR1 Malta
+USR1 Yoruba
+Greenlander UstIshim
+Greenlander Malta
+Greenlander Yoruba
+Ket Malta
+Koryak Athabascan
+Koryak Aymara
+Han Aymara
+UstIshim Malta
+Malta USR1
+Malta Ket
+Yoruba Han
+Yoruba USR1
+Ket Malta
+Han Yoruba
+Anzick UstIshim
+USR1 Malta
+USR1 Yoruba
+Ket Malta
+Trying Anzick UstIshim
+Anzick:0.00390083 UstIshim:0.0026657
+1->2 0.0174322146922 361.773621045 361.683755086
+2->1 0.0237536020577 361.985185758 361.773621045
+p1->2 0.0171366203576 361.727499642 361.985185758
+Trying Greenlander Malta
+(Saqqaq:0.0255824,Greenlander:0.0235964):0.00282334 Malta:0.116074
+1->2 3.30261940462e-07 361.683761261 361.985185758
+2->1 0.0474746264517 362.97786392 361.985185758
+p1->2 3.09683940714e-07 361.683759712 362.97786392
+p2->1 0.0965149253607 363.152727697 362.97786392
+Greenlander:0.0236641 Malta:0.116146
+1->2 3.30261940462e-07 361.683761261 363.152727697
+2->1 0.0365639179945 362.725092403 363.152727697
+p2->1 0.0562529936433 362.478257623 363.152727697
+Trying Greenlander UstIshim
+(Saqqaq:0.0244937,Greenlander:0.0300828):0.00378825 UstIshim:0.00266248
+1->2 0.0279890857637 361.750675563 363.152727697
+2->1 0.0529335066676 362.768346963 363.152727697
+p1->2 0.00755471549928 361.695916428 363.152727697
+Greenlander:0.0235972 UstIshim:0.00284801
+1->2 0.0250617079437 362.015232985 363.152727697
+2->1 0.036974824965 362.410251009 363.152727697
+Trying Greenlander Yoruba
+Greenlander:0.0278338 Yoruba:0.0397465
+1->2 0.0449918471277 361.841867032 363.152727697
+2->1 0.0443437844515 362.482531789 363.152727697
+p1->2 0.0449918471277 361.841867032 363.152727697
+p2->1 0.0443437844515 362.482531789 363.152727697
+Trying Han Aymara
+Han:0.0121943 Aymara:0.0102191
+1->2 5.642771157e-07 361.683761491 363.152727697
+2->1 0.000939450226724 361.684002002 363.152727697
+p1->2 5.642771157e-07 361.683761491 363.152727697
+p2->1 3.09683940714e-07 361.68376066 363.152727697
+Trying Han Yoruba
+Han:0.0122596 Yoruba:0.0397806
+1->2 0.162775754929 362.239878801 363.152727697
+2->1 0.0170763395727 362.240990349 363.152727697
+p1->2 0.0766369625926 361.934019335 363.152727697
+p2->1 3.27833331539e-05 361.683763794 363.152727697
+Trying Ket Malta
+Ket:0.00672412 Malta:0.116129
+1->2 0.0173331294209 361.874262707 363.152727697
+2->1 0.0830656066537 363.189743923 363.152727697
+p1->2 0.10000000149 361.683761833 363.189743923
+p2->1 4.07512889069e-05 361.68376158 363.189743923
+Trying Koryak Athabascan
+Koryak:0.0105651 Athabascan:0.00802535
+1->2 0.0903875082731 364.592410609 363.189743923
+2->1 0.0744206234813 363.542075817 364.592410609
+p1->2 0.133254826069 363.732736071 364.592410609
+p2->1 0.0729877650738 362.480979386 364.592410609
+Trying Koryak Aymara
+Koryak:0.0129913 Aymara:0.0102191
+1->2 0.00627304427326 361.696938737 364.592410609
+2->1 0.0273282490671 362.062621181 364.592410609
+p1->2 5.642771157e-07 361.683761491 364.592410609
+p2->1 0.0729877650738 362.480929895 364.592410609
+Trying Malta Ket
+Malta:0.116196 Ket:0.00669936
+Trying Malta USR1
+Malta:0.116196 USR1:0.0123565
+1->2 0.0698753297329 363.23577438 364.592410609
+2->1 3.09683940714e-07 361.683759867 364.592410609
+p1->2 0.134045809507 363.207288422 364.592410609
+p2->1 3.09683940714e-07 361.683759465 364.592410609
+Trying USR1 Malta
+USR1:0.0124099 Malta:0.116129
+Trying USR1 Yoruba
+USR1:0.0124099 Yoruba:0.0397806
+1->2 0.0118482746184 361.691256923 364.592410609
+2->1 0.0782951712608 362.843816728 364.592410609
+p1->2 0.0765401124954 361.916890857 364.592410609
+p2->1 0.0782951712608 362.843816728 364.592410609
+Trying UstIshim Malta
+UstIshim:0.00267787 Malta:0.116092
+1->2 0.0692132115364 361.746073692 364.592410609
+2->1 0.110534548759 362.946089077 364.592410609
+p2->1 0.921383678913 362.831933739 364.592410609
+Trying Yoruba Han
+Yoruba:0.0327655 Han:0.00677529
+Trying Yoruba USR1
+Yoruba:0.0327655 USR1:0.0124189
+Migration edge #4 added
+Local updates around node 1: 0 ln(lk):364.592410609 
+Local updates around node 2: 0 ln(lk):364.592410609 
+Updates in migration position: 0 ln(lk):364.592410609 
+Switches in migration direction: 0 ln(lk):364.592410609 
+ln(likelihood):364.942818414 
+Final Admixture graph with root 8
++ Base tree:
+ edge 8 -> 76 (is_mig f=0.5) : l = 0.00266863149591, w = 1
+ edge 8 -> 14 : l = 0.00266863149591, w = 1
+ edge 76 (is_mig f=0.5) -> 3=UstIshim : l = 0, w = 1
+ edge 14 -> 13=Yoruba : l = 0.0397917330265, w = 1
+ edge 14 -> 2 : l = 0.00510186422616, w = 1
+ edge 2 -> 65 (is_mig f=0.5) : l = 0.0189011674374, w = 1
+ edge 2 -> 22 : l = 0.00728085823357, w = 1
+ edge 65 (is_mig f=0.5) -> 4=Malta : l = 0.0972314998507, w = 1
+ edge 22 -> 0 : l = 0.00408359942958, w = 1
+ edge 22 -> 21=Ket : l = 0.00676514860243, w = 1
+ edge 0 -> 12 (mig target) : l = 0.00803260970861, w = 0.827678143978
+ edge 0 -> 6 : l = 0.000877796381246, w = 1
+ edge 12 (mig target) -> 16 : l = 0.00524589465931, w = 1
+ edge 12 (mig target) -> 11=USR1 : l = 0.0121182519943, w = 1
+ edge 6 -> 18 : l = 0.00213656504638, w = 1
+ edge 6 -> 5=Han (mig target) : l = 0.0118339760229, w = 0.803070187569
+ edge 16 -> 72 (is_mig f=0.5) : l = 0.00467544188723, w = 1
+ edge 16 -> 20 : l = 0.00314713991247, w = 1
+ edge 18 -> 10 : l = 0.00246057566255, w = 1
+ edge 18 -> 108 (is_mig f=0.5) : l = 0.0106791872531, w = 1
+ edge 72 (is_mig f=0.5) -> 15=Athabascan (mig target) : l = 0.00642042979598, w = 0.898732662201
+ edge 20 -> 7=Anzick : l = 0.003900825046, w = 1
+ edge 20 -> 19=Aymara : l = 0.0102190747857, w = 1
+ edge 10 -> 9=Saqqaq : l = 0.0258146226406, w = 1
+ edge 10 -> 17=Greenlander (mig target) : l = 0.0209838431329, w = 0.632380008698
+ edge 108 (is_mig f=0.5) -> 1=Koryak : l = 0, w = 1
++ Migration edges:
+ edge 65 (is_mig f=0.5) -> 12 (mig target) : l = 0, w = 0.172321856022 (is_mig)
+ edge 72 (is_mig f=0.5) -> 17=Greenlander (mig target) : l = 0, w = 0.367619991302 (is_mig)
+ edge 76 (is_mig f=0.5) -> 5=Han (mig target) : l = 0, w = 0.196929842234 (is_mig)
+ edge 108 (is_mig f=0.5) -> 15=Athabascan (mig target) : l = 0, w = 0.101267330348 (is_mig)
+Log-likelihood = 364.942818414
+DONE.

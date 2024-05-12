@@ -90,14 +90,13 @@ plot_resid("orientagraph-default-arctic-data-k5000-seed12345", "poporder.txt")
 ```
 and repeat for the outputs.
 
-<p style="text-align: center;">
-<img src="orientagraph-default.png" style="width:200px;"/>
-<img src="orientagraph-mlno0.png" style="width:200px;"/>
-<em> Left is OrientAGraph in default mode; Right is no MLNO.</em>
+<p align="center">
+<img src="orientagraph-default.png" style="width:250px;"/>
+<img src="orientagraph-mlno0.png" style="width:250px;"/>
 </p>
-
-
-
+<p align="center">
+    <em> Left image is OrientAGraph in default mode (llik = ); Right image is OrientAGraph witout MLNO.</em>
+</p>
 
 In this case, we can see that MLNO search does not improve the graph. Please keep track of this information and if you find real world examples where MLNO makes a difference, we would love to know!! Please send to ekmolloy@umd.edu
 
