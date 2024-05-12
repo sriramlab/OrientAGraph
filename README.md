@@ -164,4 +164,6 @@ INSTALL_PATH="$(pwd)/install"
 make
 make check
 make install
+export INCLUDE_PATH="${INSTALL_PATH}/include"
+export LIBRARY_PATH="${INSTALL_PATH}/lib"
 ```
