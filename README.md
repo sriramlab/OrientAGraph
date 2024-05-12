@@ -3,7 +3,7 @@ OrientAGraph
 
 OrientAGraph implements **Maximum Likelihood Network Orientation (MNLO)** within [TreeMix](https://doi.org/10.1371/journal.pgen.1002967), a popular package for estimating admixture graphs from f-statistics (and related quantities). In our experimental study, we found that MLNO either improved or else did not impact the accuracy of the original TreeMix search heuristic. To learn more, check out [this paper](https://doi.org/10.1093/bioinformatics/btab267) with Arun Durvasula and Sriram Sankararaman. 
 
-**Starting in version 1.2:** By default, OrientAGraph searches for the MLNO only after each of the first two admixture edges are added (equivalent to using the flag: `-mlno 1,2`). To get started, see the installation instructions below as well as [this example](example/README.md).
+**Starting in version 1.2:** By default, OrientAGraph searches for the MLNO only after each of the first two admixture edges are added (equivalent to using the flag: `-mlno 1,2`). To get started, see the installation instructions below as well as [this example](example/arctic-data/README.md).
 
 Other Useages
 -------------

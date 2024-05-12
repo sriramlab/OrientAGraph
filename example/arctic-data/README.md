@@ -4,10 +4,6 @@ In this example, we will reanalyze the Arctic Data from [Nielsen, Vaughn, *et al
 The input data `ArcticData.txt.gz` was created by gzipping [https://github.com/avaughn271/AdmixtureBayes/blob/main/Data/ArcticData.txt](https://github.com/avaughn271/AdmixtureBayes/blob/main/Data/ArcticData.txt). 
 
 
-```
-gzcat ArcticData.txt.gz | head -n1 > poporder.txt
-```
-
 Step 1
 ------
 The first step is to convert the allele frequencies into f2-summary statistics:
@@ -79,16 +75,23 @@ Step 2: Run OrientAGraph without MLNO search.
 
 Step 3: Look at the results.
 -------
+First, create a poporder file for the visualization.
 ```
-R
+gzcat ArcticData.txt.gz | head -n1 | sed 's/ /\n/g' > poporder.txt 
+```
+
+Second, start `R`.
+
+Third, type
+```
 source("../../src/plotting_funcs.R")
 plot_tree("orientagraph-default-arctic-data-k5000-seed12345")
 plot_resid("orientagraph-default-arctic-data-k5000-seed12345", "poporder.txt")
 ```
-and repeat for the other cases.
+and repeat for the outputs.
 
-![OrientAGraph - default (MLNO 1,2)](orientagraph-default.png)
-![OrientAGraph - No MLNO](orientagraph-mlno0.png)
+![OrientAGraph - default (MLNO 1,2)](orientagraph-default.png =250x)
+![OrientAGraph - No MLNO](orientagraph-mlno0.png =250x)
 
 In this case, we can see that MLNO search does not improve the graph. Please keep track of this information and if you find real world examples where MLNO makes a difference, we would love to know!! Please send to ekmolloy@umd.edu
 
