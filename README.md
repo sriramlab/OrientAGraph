@@ -154,30 +154,42 @@ Installation on Linux
 ----------------------
 A similar installation can be done for linux but you will need to use apt-get (or some other tool) instead of homebrew. If you are using a Linux system, you can ask your system admin about how to access GSL and BOOST; however, you may not be able to compile static binaries then.
 
-I did the following to install BOOST.
+Installation from source
+------------------------
+1. Build and install BOOST.
 ```
 wget https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.gz
 tar -zxvf boost_1_82_0.tar.gz
 cd boost_1_82_0
 mkdir install
-INSTALL_PATH="$(pwd)/install"
-./bootstrap.sh --prefix="$(pwd)/install"
+BOOST_PATH="$(pwd)/install"
+./bootstrap.sh --prefix="BOOST_PATH"
 ./bs2 install
 ```
 
-I did the following to install GSL.
+2. Build and install GSL.
 ```
 wget https://ftp.gnu.org/gnu/gsl/gsl-2.7.1.tar.gz
 tar -zxvf gsl-latest.tar.gz
 cd gsl-2.7.1
 mkdir install
-INSTALL_PATH="$(pwd)/install"
+GSL_PATH="$(pwd)/install"
 make
 make check
 make install
-export INCLUDE_PATH="${INSTALL_PATH}/include"
-export LIBRARY_PATH="${INSTALL_PATH}/lib"
+export INCLUDE_PATH="${GSL_PATH}/include"
+export LIBRARY_PATH="${GSL_PATH}/lib"
+```
+3. Download and build OrientAGraph
+```
+git clone https://github.com/ekmolloy/OrientAGraph.git
+cd OrientAGraph
+LDFLAGS="-static"
+./configure CPPFLAGS=-I${INCLUDE_PATH} LDFLAGS="-L${LIBRARY_PATH}" --with-boost="${BOOST_PATH}"
+make
 ```
 
-
-
+4. Check if the build is static with command
+```
+ldd ./src/orientagraph
+```
