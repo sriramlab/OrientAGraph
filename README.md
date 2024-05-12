@@ -152,9 +152,20 @@ is for the bash profile. Similar commands exist for other profiles.
 
 Installation on Linux 
 ----------------------
-A similar installation can be done for linux but you will need to use apt-get (or some other tool) instead of homebrew. If you are using a Linux system, you can ask your system admin about how to access GSL and BOOST. These may already be available on your system (sometimes you can load them as `modules`).
+A similar installation can be done for linux but you will need to use apt-get (or some other tool) instead of homebrew. If you are using a Linux system, you can ask your system admin about how to access GSL and BOOST; however, you may not be able to compile static binaries then.
 
-On our system, I did the following to install GSL.
+I did the following to install BOOST.
+```
+wget https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.gz
+tar -zxvf boost_1_82_0.tar.gz
+cd boost_1_82_0
+mkdir install
+INSTALL_PATH="$(pwd)/install"
+./bootstrap.sh --prefix="$(pwd)/install"
+./bs2 install
+```
+
+I did the following to install GSL.
 ```
 wget https://ftp.gnu.org/gnu/gsl/gsl-2.7.1.tar.gz
 tar -zxvf gsl-latest.tar.gz
@@ -168,9 +179,5 @@ export INCLUDE_PATH="${INSTALL_PATH}/include"
 export LIBRARY_PATH="${INSTALL_PATH}/lib"
 ```
 
-I did the following to install BOOST.
-```
-wget https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.gz
-tar -zxvf boost_1_82_0.tar.gz
-```
+
 
