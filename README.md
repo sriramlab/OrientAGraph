@@ -153,3 +153,15 @@ is for the bash profile. Similar commands exist for other profiles.
 Installation on Linux 
 ----------------------
 A similar installation can be done for linux but you will need to use apt-get (or some other tool) instead of homebrew. If you are using a Linux system, you can ask your system admin about how to access GSL and BOOST. These may already be available on your system (sometimes you can load them as `modules`).
+
+On our system, I did the following to install GSL.
+```
+wget ftp://ftp.gnu.org/gnu/gsl/gsl-latest.tar.gz
+tar -zxvf gsl-latest.tar.gz
+cd gsl-2.7.1
+mkdir install
+INSTALL_PATH="$(pwd)/install"
+make
+make check
+make install
+```
