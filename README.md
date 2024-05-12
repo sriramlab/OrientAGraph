@@ -197,7 +197,7 @@ should return `libgsl.a` and `libgslcblas.a`.
 git clone https://github.com/ekmolloy/OrientAGraph.git
 cd OrientAGraph
 LDFLAGS="-static"
-./configure CPPFLAGS=-I${INCLUDE_PATH} LDFLAGS="-L${LIBRARY_PATH}" --with-boost="${BOOST_PATH}"
+./configure CPPFLAGS=-I${INCLUDE_PATH} LDFLAGS="-L${LIBRARY_PATH} -static" --with-boost="${BOOST_PATH}"
 make
 ```
 
@@ -205,3 +205,4 @@ make
 ```
 ldd ./src/orientagraph
 ```
+should return `not a dynamic executable`
