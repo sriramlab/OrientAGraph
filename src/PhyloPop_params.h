@@ -125,6 +125,7 @@ public:
 	set<int> tryallmigsbt;
 	bool givenpopaddorder;
 	string popaddorderfile;
+	bool checkpoint;
 	// End of parameters added by EKM
 };
 

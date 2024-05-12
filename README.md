@@ -5,7 +5,7 @@ OrientAGraph implements **Maximum Likelihood Network Orientation (MNLO)** within
 OrientAGraph can be used to find the MLNO of a user-provided graph (option: `-gf <vertex file> <edge file> -score mlno`) or incorporated into TreeMix's heursitic search for the best fitting admixture graph (option:  `-mlno` ).
 In an experimental study, we found that MLNO improved (or else did not impact) the accuracy of the original TreeMix search heuristic.
 The current implementation exhaustively searches for the MLNO, and thus, we expect it to be computationally intensive on very large admixture graphs; in this case,  MLNO could be run only after the addition of the first two admixture edges (option:  `-mlno 1,2` ).
-To learn more, check out [this example](example/README.md) and [this bioRxiv preprint](https://doi.org/10.1101/2021.02.02.429467) with Arun Durvasula and Sriram Sankararaman.
+To learn more, check out [this example](example/README.md) and [this paper](https://doi.org/10.1093/bioinformatics/btab267) with Arun Durvasula and Sriram Sankararaman.
 
 
 Acknowledgements
@@ -88,16 +88,16 @@ orientagraph
 ```
 will produce the help message:
 ```
-OrientAGraph 1.0
+OrientAGraph 1.1
 
 OrientAGraph is built from TreeMix v1.13 Revision 231 by
 J.K. Pickrell and J.K. Pritchard and implements several new
 features, including Maximum Likelihood Network Orientation
 (MLNO), which can be used as a graph search heuristic.
 
-Contact: Erin Molloy (ekmolloy@cs.ucla.edu)
+Contact: Erin Molloy (ekmolloy@umd.edu)
 
-COMMAND:  orientagraph
+COMMAND:  ./src/orientagraph -h
 
 TreeMix Options:
 -h Display this help
@@ -141,6 +141,7 @@ Options added for OrientAGraph:
     using heuristic
 -popaddorder [population list file] Order to add populations when building
     starting tree
+-checkpoint Write checkpoint files
 ```
 
 Recommended Usage

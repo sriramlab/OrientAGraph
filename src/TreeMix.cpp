@@ -19,7 +19,7 @@ void printv() {
          << "J.K. Pickrell and J.K. Pritchard and implements several new\n"
          << "features, including Maximum Likelihood Network Orientation\n"
          << "(MLNO), which can be used as a graph search heuristic.\n\n"
-         << "Contact: Erin Molloy (ekmolloy@cs.ucla.edu)\n\n";
+         << "Contact: Erin Molloy (ekmolloy@umd.edu)\n\n";
 }
 
 void printopts() {
@@ -65,6 +65,7 @@ void printopts() {
          << "    using heuristic\n";
     cout << "-popaddorder [population list file] Order to add populations when building\n"
          << "    starting tree\n";
+    cout << "-checkpoint Write checkpoint files\n";
     // End of additions by EKM
     cout << "\n";
 }
@@ -84,6 +85,28 @@ void process_list_of_ints(string listofints, set<int> &amigs, int nmigs) {
     }
 }
 
+void write_check_point(string outprefix, GraphState2 &state, CountData &counts, PhyloPop_params &p) {
+    string cov_se_cp = outprefix + ".covse.gz";
+    string llik_cp = outprefix + ".llik"; 
+
+    // Print graph (vertices and edges)
+    state.tree->print(outprefix);
+
+    // Print Cov SE matrix
+    counts.print_cov_var(cov_se_cp);
+
+    // Print likelihood
+    ofstream likout(llik_cp.c_str());
+    likout << state.llik() << "\n";
+}
+
+void write_graph(string outprefix, GraphState2 &state, PhyloPop_params &p) {
+    // Print graph (vertices and edges)
+    if (p.sample_size_correct == true) {
+        map<Graph::edge_descriptor, double> maxw = state.get_edge_maxw();
+        state.tree->print(outprefix, maxw);
+    } else state.print_trimmed(outprefix);
+}
 
 int main(int argc, char *argv[]){
     printv();
@@ -231,6 +254,9 @@ int main(int argc, char *argv[]){
         p.givenpopaddorder = true;
         p.popaddorderfile = cmdline.GetArgument("-popaddorder", 0);
     }
+    if (cmdline.HasSwitch("-checkpoint")) {
+        p.checkpoint = true;
+    }
     // End of parameters added by EKM
 
     cout.precision(8);
@@ -242,6 +268,7 @@ int main(int argc, char *argv[]){
     T = gsl_rng_ranlxs2;
     r = gsl_rng_alloc(T);
     int seed = (int) time(0);
+    int start_nmig;
     gsl_rng_set(r, p.seed);
 
     // Output files
@@ -272,6 +299,8 @@ int main(int argc, char *argv[]){
         //}
     }
 
+    start_nmig = state.get_nmig();
+
     // Start of addition by EKM - Score input graph and exit
     if (p.doscore) {
         if (p.scoremethod.compare("asis") == 0) {
@@ -281,7 +310,7 @@ int main(int argc, char *argv[]){
 
             likout << setprecision(12) << "Input ln(likelihood) "
                    << state.llik() << " with "
-                   << state.get_nmig() << " migration events\n";
+                   << start_nmig << " migration events\n";
             likout.close();
 
             cout << "Final Admixture"; state.mlno_print_graph_w_params();
@@ -289,7 +318,9 @@ int main(int argc, char *argv[]){
             cout << "DONE.\n";
 
             return 0;
-        } if (p.scoremethod.compare("rfit") == 0) {
+        } 
+
+        if (p.scoremethod.compare("rfit") == 0) {
             cout << "Refitting parameters and scoring input graph\n";
             state.mlno_fit_graph();
         } else if (p.scoremethod.compare("mlbt") == 0) {
@@ -305,16 +336,13 @@ int main(int argc, char *argv[]){
 
         state.print_treeout(outstem);
 
-        if (p.sample_size_correct == true) {
-            map<Graph::edge_descriptor, double> maxw = state.get_edge_maxw();
-            state.tree->print(outstem, maxw);
-        } else state.print_trimmed(outstem);
+        write_graph(outstem, state, p);
 
         state.print_sigma_cor(modelcovfile);
 
         likout << setprecision(12) << "Input ln(likelihood) "
                << state.llik() << " with "
-               << state.get_nmig() << " migration events\n";
+               << start_nmig << " migration events\n";
         likout.close();
 
         cout << "Final Admixture"; state.mlno_print_graph_w_params();
@@ -326,7 +354,7 @@ int main(int argc, char *argv[]){
     if (p.refit) state.mlno_fit_graph();
     // End of addition by EKM
 
-    if (state.get_nmig() > 0) {
+    if (start_nmig > 0) {
         if (p.set_root) state.mlno_reroot_at_outgroup(); // Added by EKM
     } else {
         // add remaining populations
@@ -357,11 +385,14 @@ int main(int argc, char *argv[]){
         }
     }
 
+    if (p.checkpoint) write_check_point(outstem + "-checkpoint-" + to_string(start_nmig), state, counts, p);
+
     //print the starting likelihood (after tree building)
-    likout << "Starting ln(likelihood) with "<< state.get_nmig() <<" migration events: "<< state.llik() << " \n";
+    likout << "Starting ln(likelihood) with " << start_nmig << " migration events: " << state.llik() << " \n";
     if (p.dotarget)	state.target_pop();
     if (p.climb) state.iterate_all_hillclimb();
-    for (int i = 0; i < p.nmig; i++){
+    for (int i = start_nmig; i < p.nmig; i++){
+
     	state.current_llik = state.llik();
        	while (state.current_llik <= -DBL_MAX){
        		cout << "RESCALING\n"; cout.flush();
@@ -382,23 +413,39 @@ int main(int argc, char *argv[]){
             else add = state.add_mig_targeted();
         }
 
+        if (p.checkpoint) write_check_point(outstem + "-checkpoint-" + to_string(i+1), state, counts, p);
+
         if (add.first == true) {
             cout << "Migration edge #" << i + 1 << " added\n";  // Added by EKM
             state.iterate_mig_hillclimb_and_optimweight(add.second, current_nsum);
+
             // Start of addition by EKM
             if (p.domlno.find(i + 1) != p.domlno.end()) {
+                // Check that you should be doing an add
                 cout << "Performing exhaustive search for MLNO\n";
                 bool is_reoriented = state.mlno_fit_graph_mlno();
+                if (is_reoriented) {
+                    cout << "Found orientation with higher likelihood!\n";
+                    if (p.checkpoint) write_check_point(outstem + "-checkpoint-" + to_string(i+1) + "-reoriented", state, counts, p);
+                }
             }
             // End of addition by EKM
     	}
 
-    	state.optimize_weights();
-    	if (p.f2) state.set_branches_ls_f2();
-    	else state.set_branches_ls();
+        state.optimize_weights();
+        if (p.f2) state.set_branches_ls_f2();
+        else state.set_branches_ls();
         state.flip_mig();
-    	cout << "ln(likelihood):" << state.llik() << " \n";
+        cout << "ln(likelihood):" << state.llik() << " \n";
+
+        // Start of addition by EKM
+        if (add.first == false) {
+            cout << "Failed to add migration edge so won't continue trying\n";
+            break;
+        }
+        // End of addition by EKM
     }
+
     if (p.end_mig) state.optimize_weights();
     if (p.forcemig) {
     	state.add_mig(p.mig_pops.first, p.mig_pops.second);
@@ -411,14 +458,11 @@ int main(int argc, char *argv[]){
     if (!p.cor_mig && !p.flip && p.nmig > 0) state.flip_mig();
     if (p.flip) state.flip_mig(p.flipstring);
 
-    if (p.set_root) state.mlno_reroot_at_outgroup();  // Added by EKM
+    // if (p.set_root) state.mlno_reroot_at_outgroup();  // Added by EKM
 
     state.print_treeout(outstem);  // Change by EKM
 
-    if (p.sample_size_correct == true) {
-        map<Graph::edge_descriptor, double> maxw = state.get_edge_maxw();
-        state.tree->print(outstem, maxw);
-    } else state.print_trimmed(outstem);
+    write_graph(outstem, state, p);
 
     state.print_sigma_cor(modelcovfile);
 

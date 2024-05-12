@@ -223,6 +223,7 @@ public:
 	int mlno_treemix_to_binary_graph();
 	void mlno_binary_to_treemix_graph();
 	int mlno_check_if_nonbinary();
+	void mlno_save_orientation(set<int> &admixture_vinds_orig);
 
 	bool mlno_reorient_huber2019(pair<int, int> &root_eind, set<int> &admixture_vinds);
 	void mlno_move_root(pair<int, int> &root_eind);

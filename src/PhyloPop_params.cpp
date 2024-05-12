@@ -71,6 +71,7 @@ PhyloPop_params::PhyloPop_params(){
 	scoremethod = "rfit";
 	givenpopaddorder = false;
 	popaddorderfile = "NA";
+	checkpoint = false;
 	// End of parameters added by EKM
 }
 
