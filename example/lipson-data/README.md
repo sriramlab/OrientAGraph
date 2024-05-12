@@ -5,7 +5,7 @@ Here, we will analyze a dataset where MLNO makes a difference.
 We take the model in Figure 5a of [Lipson, *Molecular Ecology Resources*, 2020](https://doi.org/10.1111/1755-0998.13230).
 
 <p align="center">
-<img src="lipson2020_fig5a_graph_topology.pdf" style="width:250px;"/>
+<img src="lipson2020_fig5a_graph_topology.png" style="width:250px;"/>
 </p>
 
 First, we will analyze the true f2-statistics from this model using the R package [admixturegraph](https://doi.org/10.1093%2Fbioinformatics%2Fbtx048). In this case, the standard error is set to a uniform low value.
