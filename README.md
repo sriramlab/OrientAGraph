@@ -163,8 +163,8 @@ tar -zxvf boost_1_82_0.tar.gz
 cd boost_1_82_0
 mkdir install
 BOOST_PATH="$(pwd)/install"
-./bootstrap.sh --prefix="BOOST_PATH"
-./bs2 install
+./bootstrap.sh --prefix="$BOOST_PATH"
+./b2 install
 ```
 
 2. Build and install GSL.
