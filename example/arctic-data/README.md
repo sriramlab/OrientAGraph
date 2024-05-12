@@ -90,6 +90,9 @@ plot_resid("orientagraph-default-arctic-data-k5000-seed12345", "poporder.txt")
 ```
 and repeat for the outputs.
 
+<img src="orientagraph-default.png" style="width:200px;"/>
+<img src="orientagraph-mlno0.png" style="width:200px;"/>
+
 ![OrientAGraph - default (MLNO 1,2)](orientagraph-default.png =250x)
 ![OrientAGraph - No MLNO](orientagraph-mlno0.png =250x)
 
