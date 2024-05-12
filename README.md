@@ -156,7 +156,7 @@ A similar installation can be done for linux but you will need to use apt-get (o
 
 On our system, I did the following to install GSL.
 ```
-wget ftp://ftp.gnu.org/gnu/gsl/gsl-latest.tar.gz
+wget https://ftp.gnu.org/gnu/gsl/gsl-2.7.1.tar.gz
 tar -zxvf gsl-latest.tar.gz
 cd gsl-2.7.1
 mkdir install
@@ -167,3 +167,10 @@ make install
 export INCLUDE_PATH="${INSTALL_PATH}/include"
 export LIBRARY_PATH="${INSTALL_PATH}/lib"
 ```
+
+I did the following to install BOOST.
+```
+wget https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.gz
+tar -zxvf boost_1_82_0.tar.gz
+```
+
