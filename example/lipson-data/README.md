@@ -21,6 +21,7 @@ Let's run OrientAGraph in default mode.
     -f2 \
     -root BakaDG \
     -m 1 \
+    -seed 12345 \
     -o orientagraph-default-lipson2020-model
 ```
 
@@ -65,6 +66,7 @@ Now let's run OrientAGraph without the MLNO search.
     -root BakaDG \
     -m 1 \
     -mlno 0 \
+    -seed 12345 \
     -o orientagraph-mlno0-lipson2020-model
 ```
 
@@ -88,18 +90,34 @@ which should return
 Starting ln(likelihood) with 0 migration events: -535.753 
 Exiting ln(likelihood) with 1 migration events: -32.606
 ```
-This is lower than the other other graph, so MLNO helped in this example.
+This is lower than the other other graph, so MLNO helped in this example. Note that we found the same result when simultating data under this model with ms, and then giving the resulting allele frequences as input to OrientAGraph.
 
 Step 3: Visualize the results.
 -------
+To visualize the residuals, you will need to create a poporder file.
+```
+head -n1 modelf2mat_lipson2020_fig5a.txt | sed 's/ /\n/g' > poporder.txt 
+```
 
+Then, you will need to start `R`.
 
+The following commands can be used in R
+```
+source("../../src/plotting_funcs.R")
+plot_tree("orientagraph-default-lipson2020-model")
+plot_resid("orientagraph-default-lipson2020-model", "poporder.txt")
 
+```
+and repeated for the output without MLNO.
 
+<p align="center">
+<img src="orientagraph-default.png" style="width:250px;"/>
+<img src="orientagraph-mlno0.png" style="width:250px;"/>
+</p>
+<p align="center">
+    <em> Left image is OrientAGraph in default mode (llik = 82.9139); Right image is OrientAGraph witout MLNO (llik = -32.606).</em>
+</p>
 
 
 If you find real world examples where MLNO makes a difference, we would love to know!! Please send a message to ekmolloy@umd.edu
-
-
-
 

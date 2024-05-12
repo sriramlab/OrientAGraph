@@ -39,8 +39,8 @@ Let's run OrientAGraph in default mode.
 ../../src/orientagraph \
     -i arctic-data-k5000-seed12345.cov.gz \
     -givenmat arctic-data-k5000-seed12345.covse.gz \
-    -root UstIshim \
     -f2 \
+    -root UstIshim \
     -m 4 \
     -seed 12345 \
     -o orientagraph-default-arctic-data-k5000-seed12345 \
@@ -56,16 +56,16 @@ MLNO search will be performed after each of the following admixture edge additio
 This means that OrientAGraph will perform MLNO search after the first two edge additions (same as `-mlno 1,2`). The default changed starting in version 1.2; previously, you needed to use the command `-mlno` flag to perform any MLNO search. The default was changed because `-mlno 1,2` is appropriate for most users. It is may be sufficient to re-route admixture edges away from the outgroup population and it is relatively computationally efficient (even for large numbers of populations or admixture edges).
 
 
-
 Step 2: Run OrientAGraph without MLNO search.
 -------
+Now let's run OrientAGraph without the MLNO search.
 
 ```
 ../../src/orientagraph \
     -i arctic-data-k5000-seed12345.cov.gz \
     -givenmat arctic-data-k5000-seed12345.covse.gz \
-    -root UstIshim \
     -f2 \
+    -root UstIshim \
     -m 4 \
     -mlno 0 \
     -seed 12345 \
@@ -73,22 +73,22 @@ Step 2: Run OrientAGraph without MLNO search.
     &> orientagraph-mlno0-arctic-data-k5000-seed12345.log
 ```
 
-Step 3: Look at the results.
+Step 3: Visualize the results.
 -------
-First, create a poporder file for the visualization.
+To visualize the residuals, you will need to create a poporder file.
 ```
 gzcat ArcticData.txt.gz | head -n1 | sed 's/ /\n/g' > poporder.txt 
 ```
 
-Second, start `R`.
+Then, you will need to start `R`.
 
-Third, type
+The following commands can be used in R
 ```
 source("../../src/plotting_funcs.R")
 plot_tree("orientagraph-default-arctic-data-k5000-seed12345")
 plot_resid("orientagraph-default-arctic-data-k5000-seed12345", "poporder.txt")
 ```
-and repeat for the outputs.
+and repeated for the output without MLNO.
 
 <p align="center">
 <img src="orientagraph-default.png" style="width:250px;"/>
@@ -98,7 +98,8 @@ and repeat for the outputs.
     <em> Left image is OrientAGraph in default mode (llik = 364.943); Right image is OrientAGraph witout MLNO (llik = 364.943).</em>
 </p>
 
-In this case, we can see that MLNO search does not improve the graph. Please keep track of this information and if you find real world examples where MLNO makes a difference, we would love to know!! Please send to ekmolloy@umd.edu
+For this dataset, MLNO search does not improve the graph. 
 
-To analyze a dataset where MLNO has an impact, go to [this example](../toy-data/README.md).
+To analyze a dataset where MLNO has an impact, go to [this example](../lipson-data/README.md).
 
+If you find real world examples where MLNO makes a difference, we would love to know!! Please send a message to ekmolloy@umd.edu
