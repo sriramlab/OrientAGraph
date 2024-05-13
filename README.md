@@ -156,7 +156,13 @@ A similar installation can be done for linux but you will need to use apt-get (o
 
 Installation from source
 ------------------------
-1. Build and install BOOST.
+1. Download OrientAGraph.
+```
+git clone https://github.com/ekmolloy/OrientAGraph.git
+cd OrientAGraph
+```
+
+2. Build and install BOOST.
 ```
 wget https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.gz
 tar -zxvf boost_1_82_0.tar.gz
@@ -172,7 +178,7 @@ ls ${BOOST_PATH}/lib/*a
 ```
 should return a bunch of files.
 
-2. Build and install GSL.
+3. Build and install GSL.
 ```
 wget https://ftp.gnu.org/gnu/gsl/gsl-2.7.1.tar.gz
 tar -zxvf gsl-2.7.1.tar.gz
@@ -192,11 +198,8 @@ ls $LIBRARY_PATH/*a
 ```
 should return `libgsl.a` and `libgslcblas.a`.
 
-3. Download and build OrientAGraph
+4. Build OrientAGraph
 ```
-git clone https://github.com/ekmolloy/OrientAGraph.git
-cd OrientAGraph
-LDFLAGS="-static"
 ./configure CPPFLAGS=-I${INCLUDE_PATH} LDFLAGS="-L${LIBRARY_PATH} -static" --with-boost="${BOOST_PATH}"
 make
 ```
