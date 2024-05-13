@@ -185,8 +185,9 @@ should return a bunch of files.
 wget https://ftp.gnu.org/gnu/gsl/gsl-2.7.1.tar.gz
 tar -zxvf gsl-2.7.1.tar.gz
 cd gsl-2.7.1
+mv install old-install
 mkdir install
-GSL_PATH="$(pwd)/install"
+export GSL_PATH="$(pwd)/install"
 export INCLUDE_PATH="${GSL_PATH}/include"
 export LIBRARY_PATH="${GSL_PATH}/lib"
 ./configure --prefix="$GSL_PATH" 
