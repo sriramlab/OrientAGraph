@@ -66,7 +66,6 @@ which should return `include` and `lib`, among other files.
 ```
 git clone https://github.com/ekmolloy/OrientAGraph.git
 cd OrientAGraph
-LDFLAGS="-static"
 ./configure CPPFLAGS=-I${INCLUDE_PATH} LDFLAGS="-L${LIBRARY_PATH}" --with-boost="${BOOST_PATH}"
 make
 ```
