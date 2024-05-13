@@ -206,7 +206,7 @@ should return `libgsl.a` and `libgslcblas.a`.
 ./configure CPPFLAGS=-I${INCLUDE_PATH} LDFLAGS="-L${LIBRARY_PATH} -static" --with-boost="${BOOST_PATH}"
 make
 ```
-If using Mac, remove `-static`.
+If using Mac, remove `-static` because you cannot really make static binaries for Mac.
 
 4. Check if the build is static with command
 ```
