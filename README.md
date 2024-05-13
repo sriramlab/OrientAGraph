@@ -207,9 +207,12 @@ should return `libgsl.a` and `libgslcblas.a`.
 ./configure CPPFLAGS=-I${INCLUDE_PATH} LDFLAGS="-L${LIBRARY_PATH} -static" --with-boost="${BOOST_PATH}"
 make
 ```
+If using Mac, remove `-static`.
 
 4. Check if the build is static with command
 ```
 ldd ./src/orientagraph
 ```
 should return `not a dynamic executable`
+
+If using Mac, try `otool -l ./src/orientagraph`.
