@@ -172,6 +172,7 @@ mkdir install
 BOOST_PATH="$(pwd)/install"
 ./bootstrap.sh --prefix="$BOOST_PATH"
 ./b2 install
+cd ..
 ```
 Check there are static libs
 ```
@@ -192,6 +193,7 @@ export LIBRARY_PATH="${GSL_PATH}/lib"
 make
 make check
 make install
+cd ..
 ```
 Check there are static libs
 ```
